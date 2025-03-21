@@ -8,7 +8,8 @@ import {
   CheckCircle2,
   CalendarClock,
   BarChart,
-  CalendarCheck
+  CalendarCheck,
+  MessageSquare
 } from "lucide-react";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
