@@ -17,6 +17,10 @@ import EventDetail from "./pages/EventDetail";
 // Volunteer pages
 import VolunteerDashboard from "./pages/volunteer/Dashboard";
 
+// Placeholder components for new routes
+const OrganizerDashboard = () => <div>Organizer Dashboard (Coming Soon)</div>;
+const AdminDashboard = () => <div>Admin Dashboard (Coming Soon)</div>;
+
 // Animation wrapper for route transitions
 const AnimationWrapper = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -53,6 +57,12 @@ const AppRoutes = () => {
         
         {/* Volunteer routes */}
         <Route path="/volunteer/dashboard" element={<VolunteerDashboard />} />
+        
+        {/* Organizer routes */}
+        <Route path="/organizer/dashboard" element={<OrganizerDashboard />} />
+        
+        {/* Admin routes */}
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
         
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
