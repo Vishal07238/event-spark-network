@@ -1,3 +1,4 @@
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -16,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { toast } from "@/components/ui/use-toast"
 import { useNavigate } from "react-router-dom"
+import AuthLayout from "@/layouts/AuthLayout"
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -98,4 +100,17 @@ export function RegisterForm() {
       </form>
     </Form>
   )
+}
+
+// Create a default export for the Register page
+export default function Register() {
+  return (
+    <AuthLayout 
+      title="Create an account" 
+      subtitle="Sign up to join our volunteer community" 
+      type="register"
+    >
+      <RegisterForm />
+    </AuthLayout>
+  );
 }
