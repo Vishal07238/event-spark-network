@@ -1,7 +1,6 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Calendar, Users, Activity, Heart, ChevronRight } from "lucide-react";
+import { ArrowRight, Calendar, Users, Activity, Heart, ChevronRight, Search, Award, BarChart, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -17,6 +16,38 @@ export default function Index() {
     
     return () => clearTimeout(timer);
   }, []);
+
+  // Features data with enhanced descriptions
+  const features = [
+    {
+      title: "Find Events",
+      description: "Discover volunteer opportunities perfectly matched to your skills, interests, and availability in your local community or around the world.",
+      icon: Search,
+      color: "bg-blue-100 text-blue-700",
+      delay: 100
+    },
+    {
+      title: "Connect with NGOs",
+      description: "Build meaningful relationships with impactful organizations working on causes you care about, from environmental conservation to community development.",
+      icon: Users,
+      color: "bg-purple-100 text-purple-700",
+      delay: 200
+    },
+    {
+      title: "Track Progress",
+      description: "Monitor your volunteer hours, skills gained, and impact metrics with our intuitive dashboard. Set goals and celebrate your milestones.",
+      icon: BarChart,
+      color: "bg-green-100 text-green-700",
+      delay: 300
+    },
+    {
+      title: "Make Impact",
+      description: "See the tangible difference your contributions make through impact reports, testimonials, and community transformation stories.",
+      icon: Star,
+      color: "bg-amber-100 text-amber-700",
+      delay: 400
+    }
+  ];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -120,7 +151,7 @@ export default function Index() {
       </section>
 
       {/* Features section */}
-      <section className="py-16 md:py-24 px-4">
+      <section className="py-16 md:py-24 px-4 bg-accent/30">
         <div className="container max-w-6xl">
           <div className={`text-center max-w-2xl mx-auto mb-12 transition-all duration-700 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Why Join VolunteerHub?</h2>
@@ -130,46 +161,31 @@ export default function Index() {
           </div>
           
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-            {[
-              {
-                title: "Find Events",
-                description: "Discover volunteer opportunities that match your skills and interests.",
-                icon: Calendar,
-                delay: 100
-              },
-              {
-                title: "Connect with NGOs",
-                description: "Build relationships with organizations making real impact.",
-                icon: Users,
-                delay: 200
-              },
-              {
-                title: "Track Progress",
-                description: "Monitor your volunteer hours and contributions over time.",
-                icon: Activity,
-                delay: 300
-              },
-              {
-                title: "Make Impact",
-                description: "See the tangible difference your volunteering makes.",
-                icon: Heart,
-                delay: 400
-              }
-            ].map((feature, index) => (
+            {features.map((feature, index) => (
               <Card 
                 key={index} 
-                className={`transition-all duration-700 animate-fade-in hover:shadow-md transition-shadow`}
+                className={`transition-all duration-700 animate-fade-in hover:shadow-lg group border overflow-hidden`}
                 style={{ animationDelay: `${feature.delay}ms` }}
               >
-                <CardContent className="pt-6">
-                  <div className="flex flex-col items-center text-center">
-                    <div className="mb-4 rounded-full bg-primary/10 p-3">
-                      <feature.icon className="h-6 w-6 text-primary" />
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <CardContent className="pt-6 pb-8">
+                  <div className="flex flex-col items-center text-center relative z-10">
+                    <div className={`mb-5 rounded-full ${feature.color} p-4 transform group-hover:scale-110 transition-transform`}>
+                      <feature.icon className="h-6 w-6" />
                     </div>
-                    <h3 className="text-lg font-medium">{feature.title}</h3>
-                    <p className="mt-2 text-sm text-muted-foreground">
+                    <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
+                    <p className="text-muted-foreground">
                       {feature.description}
                     </p>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="mt-4 text-primary"
+                      onClick={() => navigate("/register")}
+                    >
+                      Learn more
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
