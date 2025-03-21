@@ -11,6 +11,8 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
+import Events from "./pages/Events";
+import EventDetail from "./pages/EventDetail";
 
 // Volunteer pages
 import VolunteerDashboard from "./pages/volunteer/Dashboard";
@@ -46,6 +48,8 @@ const AppRoutes = () => {
         <Route path="/" element={<Index />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/events" element={<Events />} />
+        <Route path="/events/:id" element={<EventDetail />} />
         
         {/* Volunteer routes */}
         <Route path="/volunteer/dashboard" element={<VolunteerDashboard />} />

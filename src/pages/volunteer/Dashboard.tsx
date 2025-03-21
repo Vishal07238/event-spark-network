@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { 
   Calendar,
@@ -11,6 +10,7 @@ import {
   CalendarCheck,
   MessageSquare
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
 export default function VolunteerDashboard() {
+  const navigate = useNavigate();
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -72,6 +73,14 @@ export default function VolunteerDashboard() {
     { id: 4, title: "Update skill preferences", completed: false }
   ];
 
+  const handleViewAllEvents = () => {
+    navigate("/events");
+  };
+
+  const handleViewEventDetails = (eventId: number) => {
+    navigate(`/events/${eventId}`);
+  };
+
   return (
     <DashboardLayout userType="volunteer">
       <div className="space-y-8">
@@ -111,15 +120,16 @@ export default function VolunteerDashboard() {
                 <CardTitle>Upcoming Events</CardTitle>
                 <CardDescription>Your next volunteer opportunities</CardDescription>
               </div>
-              <Button variant="outline" size="sm">View all</Button>
+              <Button variant="outline" size="sm" onClick={handleViewAllEvents}>View all</Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {upcomingEvents.map((event, i) => (
                   <div 
                     key={event.id} 
-                    className={`relative p-4 border rounded-lg flex flex-col sm:flex-row gap-4 animate-fade-in bg-card hover:bg-accent/30 transition-colors`}
+                    className={`relative p-4 border rounded-lg flex flex-col sm:flex-row gap-4 animate-fade-in bg-card hover:bg-accent/30 transition-colors cursor-pointer`}
                     style={{ animationDelay: `${i * 150}ms` }}
+                    onClick={() => handleViewEventDetails(event.id)}
                   >
                     <div className="relative h-16 w-16 sm:h-20 sm:w-20 flex-shrink-0 overflow-hidden rounded-md">
                       <img 
@@ -164,7 +174,10 @@ export default function VolunteerDashboard() {
                     </div>
                     
                     <div className="sm:self-center mt-2 sm:mt-0">
-                      <Button size="sm">View Details</Button>
+                      <Button size="sm" onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewEventDetails(event.id);
+                      }}>View Details</Button>
                     </div>
                   </div>
                 ))}

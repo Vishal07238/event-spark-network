@@ -9,7 +9,6 @@ export default function Index() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    // Simulate loading state for animations
     const timer = setTimeout(() => {
       setIsLoaded(true);
     }, 100);
@@ -17,7 +16,6 @@ export default function Index() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Features data with enhanced descriptions
   const features = [
     {
       title: "Find Events",
@@ -51,7 +49,6 @@ export default function Index() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Hero section */}
       <section className="relative flex flex-col items-center justify-center px-4 py-24 md:py-32 overflow-hidden">
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 mix-blend-multiply" />
@@ -100,25 +97,29 @@ export default function Index() {
                           title: "Beach Cleanup", 
                           location: "Venice Beach, CA", 
                           date: "August 15, 2023",
-                          icon: "🌊"
+                          icon: "🌊",
+                          id: 1
                         },
                         { 
                           title: "Food Drive", 
                           location: "Downtown Food Bank", 
                           date: "August 20, 2023",
-                          icon: "🍎" 
+                          icon: "🍎",
+                          id: 2 
                         },
                         { 
                           title: "Habitat Building", 
                           location: "Westside Community", 
                           date: "August 27, 2023",
-                          icon: "🏗️" 
+                          icon: "🏗️",
+                          id: 3
                         }
                       ].map((event, index) => (
                         <div 
                           key={index} 
                           className={`p-3 rounded-lg border bg-white/5 backdrop-blur-sm hover:bg-accent transition-all cursor-pointer animate-fade-in`}
                           style={{ animationDelay: `${index * 200}ms` }}
+                          onClick={() => navigate(`/events/${event.id}`)}
                         >
                           <div className="flex items-start">
                             <div className="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
@@ -150,7 +151,6 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Features section */}
       <section className="py-16 md:py-24 px-4 bg-accent/30">
         <div className="container max-w-6xl">
           <div className={`text-center max-w-2xl mx-auto mb-12 transition-all duration-700 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
@@ -194,7 +194,6 @@ export default function Index() {
         </div>
       </section>
 
-      {/* CTA section */}
       <section className="py-16 md:py-24 px-4 bg-accent">
         <div className="container max-w-6xl text-center">
           <div className={`max-w-2xl mx-auto transition-all duration-700 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
@@ -223,7 +222,6 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="border-t py-12 px-4">
         <div className="container max-w-6xl">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
