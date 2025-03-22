@@ -16,6 +16,10 @@ import EventDetail from "./pages/EventDetail";
 
 // Volunteer pages
 import VolunteerDashboard from "./pages/volunteer/Dashboard";
+import VolunteerEvents from "./pages/volunteer/Events";
+import VolunteerMessages from "./pages/volunteer/Messages";
+import VolunteerTasks from "./pages/volunteer/Tasks";
+import VolunteerProfile from "./pages/volunteer/Profile";
 
 // Placeholder components for new routes
 const OrganizerDashboard = () => <div>Organizer Dashboard (Coming Soon)</div>;
@@ -57,6 +61,10 @@ const AppRoutes = () => {
         
         {/* Volunteer routes */}
         <Route path="/volunteer/dashboard" element={<VolunteerDashboard />} />
+        <Route path="/volunteer/events" element={<VolunteerEvents />} />
+        <Route path="/volunteer/messages" element={<VolunteerMessages />} />
+        <Route path="/volunteer/tasks" element={<VolunteerTasks />} />
+        <Route path="/volunteer/profile" element={<VolunteerProfile />} />
         
         {/* Organizer routes */}
         <Route path="/organizer/dashboard" element={<OrganizerDashboard />} />
