@@ -1,7 +1,21 @@
 
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { X, ChevronRight, LogOut, User, Settings, Moon, Sun } from "lucide-react";
+import { 
+  X, 
+  ChevronRight, 
+  LogOut, 
+  User, 
+  Settings, 
+  Moon, 
+  Sun,
+  Home,
+  Calendar,
+  MessageSquare,
+  ClipboardList,
+  UserPlus,
+  BarChart
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -251,18 +265,7 @@ export default function Sidebar({
 }
 
 // Helper component to dynamically render the correct icon
-const NavItemIcon = ({ name }) => {
-  const { 
-    Home, 
-    Calendar, 
-    MessageSquare, 
-    ClipboardList, 
-    User,
-    UserPlus,
-    BarChart,
-    Settings
-  } = require("lucide-react");
-
+const NavItemIcon = ({ name }: { name: string }) => {
   const icons = {
     Home,
     Calendar,
@@ -274,6 +277,6 @@ const NavItemIcon = ({ name }) => {
     Settings
   };
 
-  const Icon = icons[name];
+  const Icon = icons[name as keyof typeof icons];
   return Icon ? <Icon className="h-4 w-4" /> : null;
 };
