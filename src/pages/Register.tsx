@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import AuthLayout from "@/layouts/AuthLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { registerUser } from "@/utils/auth";
+import { User } from "@/types/auth";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -54,8 +55,16 @@ export function RegisterForm() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     
+    // Create properly typed userData object
+    const userData: Omit<User, "id" | "role" | "createdAt"> & { password: string } = {
+      name: values.name,
+      email: values.email,
+      mobile: values.mobile,
+      password: values.password
+    };
+    
     // Register the user with our auth service
-    const result = registerUser(values);
+    const result = registerUser(userData);
     
     if (!result) {
       toast({
