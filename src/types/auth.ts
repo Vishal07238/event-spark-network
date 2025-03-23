@@ -45,3 +45,36 @@ export const MOCK_USERS = [
     createdAt: new Date().toISOString(),
   },
 ];
+
+export interface Event {
+  id: number;
+  title: string;
+  organization: string;
+  date: string;
+  time: string;
+  location: string;
+  participants: number;
+  status: string;
+  description: string;
+  image: string;
+  organizerId: string;
+  requirements?: string[];
+  contactPerson?: string;
+  contactEmail?: string;
+  registeredUsers?: string[];
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  description: string;
+  eventId?: number;
+  assignedTo: string;
+  createdBy: string;
+  status: 'pending' | 'in-progress' | 'completed' | 'cancelled';
+  dueDate?: string;
+  priority: 'low' | 'medium' | 'high';
+  createdAt: string;
+  updatedAt?: string;
+  completedAt?: string;
+}

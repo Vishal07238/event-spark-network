@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import AuthLayout from "@/layouts/AuthLayout";
 import { useAuth } from "@/contexts/AuthContext";
+import { registerUser } from "@/utils/auth";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -38,6 +39,7 @@ export function RegisterForm() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const { login: authLogin } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -52,18 +54,30 @@ export function RegisterForm() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     
-    // In a real app, this would be an API call to register the user
-    console.log("Registration values:", values);
+    // Register the user with our auth service
+    const result = registerUser(values);
     
-    // Simulate API call delay
-    setTimeout(() => {
+    if (!result) {
       toast({
-        title: "Registration Successful!",
-        description: "You have successfully registered. Please check your email for verification.",
+        variant: "destructive",
+        title: "Registration Failed",
+        description: "An account with this email already exists. Please try a different email or login.",
       });
-      navigate("/login");
       setIsLoading(false);
-    }, 1500);
+      return;
+    }
+    
+    // Login the user with the new credentials
+    authLogin(result.user, result.token);
+    
+    toast({
+      title: "Registration Successful!",
+      description: "You have successfully registered and are now logged in.",
+    });
+    
+    // Redirect to the appropriate dashboard
+    navigate("/volunteer/dashboard");
+    setIsLoading(false);
   }
 
   return (
