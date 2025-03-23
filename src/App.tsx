@@ -23,9 +23,11 @@ import VolunteerMessages from "./pages/volunteer/Messages";
 import VolunteerTasks from "./pages/volunteer/Tasks";
 import VolunteerProfile from "./pages/volunteer/Profile";
 
+// Admin pages
+import AdminDashboard from "./pages/admin/Dashboard";
+
 // Placeholder components for new routes
 const OrganizerDashboard = () => <div>Organizer Dashboard (Coming Soon)</div>;
-const AdminDashboard = () => <div>Admin Dashboard (Coming Soon)</div>;
 
 // Animation wrapper for route transitions
 const AnimationWrapper = ({ children }: { children: React.ReactNode }) => {
