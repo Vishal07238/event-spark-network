@@ -1,24 +1,24 @@
-
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Users, Building2 } from "lucide-react";
 import AuthLayout from "@/layouts/AuthLayout";
+import { login } from "@/utils/auth";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Define volunteer form schema
 const volunteerLoginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
-  mobile: z.string().min(10, { message: "Please enter a valid mobile number." }).optional(),
-  name: z.string().min(2, { message: "Name must be at least 2 characters." }).optional(),
+  mobile: z.string().min(10, { message: "Please enter a valid mobile number." }),
+  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   rememberMe: z.boolean().default(false),
 });
 
@@ -34,17 +34,22 @@ type OrganizerLoginFormValues = z.infer<typeof organizerLoginSchema>;
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  const { login: authLogin } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("volunteer");
+
+  // Get the "from" path from location state or default to dashboard
+  const from = location.state?.from?.pathname || "/";
 
   // Initialize volunteer form
   const volunteerForm = useForm<VolunteerLoginFormValues>({
     resolver: zodResolver(volunteerLoginSchema),
     defaultValues: {
-      email: "",
-      mobile: "",
-      name: "",
+      email: "volunteer@example.com",
+      mobile: "1234567890",
+      name: "John Doe",
       rememberMe: false,
     },
   });
@@ -53,8 +58,18 @@ export default function Login() {
   const organizerForm = useForm<OrganizerLoginFormValues>({
     resolver: zodResolver(organizerLoginSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: "organizer@example.com",
+      password: "password123",
+      rememberMe: false,
+    },
+  });
+
+  // Initialize admin form
+  const adminForm = useForm<OrganizerLoginFormValues>({
+    resolver: zodResolver(organizerLoginSchema),
+    defaultValues: {
+      email: "admin@example.com",
+      password: "admin123",
       rememberMe: false,
     },
   });
@@ -64,25 +79,30 @@ export default function Login() {
     try {
       setIsLoading(true);
       
-      // Simulate API call
-      console.log("Volunteer login form values:", values);
+      const result = login(values.email, undefined, values.name, values.mobile);
       
-      // Simulate login success after 1 second
-      setTimeout(() => {
+      if (!result) {
         toast({
-          title: "Login successful",
-          description: "Welcome back to VolunteerHub!",
+          variant: "destructive",
+          title: "Login failed",
+          description: "Invalid credentials. Please check your details and try again.",
         });
-        
-        navigate("/volunteer/dashboard");
         setIsLoading(false);
-      }, 1000);
+        return;
+      }
+
+      // Set auth state
+      authLogin(result.user, result.token);
+      
+      // Redirect based on user role
+      navigate("/volunteer/dashboard");
+      setIsLoading(false);
     } catch (error) {
       console.error("Login error:", error);
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: "Please check your credentials and try again.",
+        description: "An error occurred during login. Please try again.",
       });
       setIsLoading(false);
     }
@@ -93,25 +113,64 @@ export default function Login() {
     try {
       setIsLoading(true);
       
-      // Simulate API call
-      console.log("Organizer login form values:", values);
+      const result = login(values.email, values.password);
       
-      // Simulate login success after 1 second
-      setTimeout(() => {
+      if (!result) {
         toast({
-          title: "Login successful",
-          description: "Welcome back to VolunteerHub!",
+          variant: "destructive",
+          title: "Login failed",
+          description: "Invalid credentials. Please check your email and password.",
         });
-        
-        navigate("/organizer/dashboard");
         setIsLoading(false);
-      }, 1000);
+        return;
+      }
+      
+      // Set auth state
+      authLogin(result.user, result.token);
+      
+      // Redirect based on user role
+      navigate("/organizer/dashboard");
+      setIsLoading(false);
     } catch (error) {
       console.error("Login error:", error);
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: "Please check your credentials and try again.",
+        description: "An error occurred during login. Please try again.",
+      });
+      setIsLoading(false);
+    }
+  };
+
+  // Admin form submission handler
+  const onAdminSubmit = async (values: OrganizerLoginFormValues) => {
+    try {
+      setIsLoading(true);
+      
+      const result = login(values.email, values.password);
+      
+      if (!result) {
+        toast({
+          variant: "destructive",
+          title: "Login failed",
+          description: "Invalid credentials. Please check your email and password.",
+        });
+        setIsLoading(false);
+        return;
+      }
+      
+      // Set auth state
+      authLogin(result.user, result.token);
+      
+      // Redirect based on user role
+      navigate("/admin/dashboard");
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Login error:", error);
+      toast({
+        variant: "destructive",
+        title: "Login failed",
+        description: "An error occurred during login. Please try again.",
       });
       setIsLoading(false);
     }
@@ -301,10 +360,10 @@ export default function Login() {
         
         {/* Admin Login Form */}
         <TabsContent value="admin" className="animate-fade-in">
-          <Form {...organizerForm}>
-            <form onSubmit={organizerForm.handleSubmit(onOrganizerSubmit)} className="space-y-4">
+          <Form {...adminForm}>
+            <form onSubmit={adminForm.handleSubmit(onAdminSubmit)} className="space-y-4">
               <FormField
-                control={organizerForm.control}
+                control={adminForm.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
@@ -323,7 +382,7 @@ export default function Login() {
               />
               
               <FormField
-                control={organizerForm.control}
+                control={adminForm.control}
                 name="password"
                 render={({ field }) => (
                   <FormItem>
@@ -354,7 +413,7 @@ export default function Login() {
               />
 
               <FormField
-                control={organizerForm.control}
+                control={adminForm.control}
                 name="rememberMe"
                 render={({ field }) => (
                   <FormItem className="flex items-center space-x-2 space-y-0">

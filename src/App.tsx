@@ -5,6 +5,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 // Pages
 import Index from "./pages/Index";
@@ -53,6 +55,7 @@ const AppRoutes = () => {
   return (
     <AnimationWrapper>
       <Routes>
+        {/* Public routes */}
         <Route path="/" element={<Index />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -60,19 +63,68 @@ const AppRoutes = () => {
         <Route path="/events/:id" element={<EventDetail />} />
         
         {/* Volunteer routes */}
-        <Route path="/volunteer/dashboard" element={<VolunteerDashboard />} />
-        <Route path="/volunteer/events" element={<VolunteerEvents />} />
-        <Route path="/volunteer/messages" element={<VolunteerMessages />} />
-        <Route path="/volunteer/tasks" element={<VolunteerTasks />} />
-        <Route path="/volunteer/profile" element={<VolunteerProfile />} />
+        <Route 
+          path="/volunteer/dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={["volunteer"]}>
+              <VolunteerDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/volunteer/events" 
+          element={
+            <ProtectedRoute allowedRoles={["volunteer"]}>
+              <VolunteerEvents />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/volunteer/messages" 
+          element={
+            <ProtectedRoute allowedRoles={["volunteer"]}>
+              <VolunteerMessages />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/volunteer/tasks" 
+          element={
+            <ProtectedRoute allowedRoles={["volunteer"]}>
+              <VolunteerTasks />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/volunteer/profile" 
+          element={
+            <ProtectedRoute allowedRoles={["volunteer"]}>
+              <VolunteerProfile />
+            </ProtectedRoute>
+          } 
+        />
         
         {/* Organizer routes */}
-        <Route path="/organizer/dashboard" element={<OrganizerDashboard />} />
+        <Route 
+          path="/organizer/dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={["organizer"]}>
+              <OrganizerDashboard />
+            </ProtectedRoute>
+          } 
+        />
         
         {/* Admin routes */}
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route 
+          path="/admin/dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } 
+        />
         
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        {/* Catch-all route */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimationWrapper>
@@ -83,13 +135,15 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

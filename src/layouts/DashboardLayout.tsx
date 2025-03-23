@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -45,6 +46,7 @@ export default function DashboardLayout({ children, userType }: DashboardLayoutP
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const { state, logout } = useAuth();
   
   // Navigation items based on user type
   const getNavItems = () => {
@@ -150,13 +152,19 @@ export default function DashboardLayout({ children, userType }: DashboardLayoutP
 
   // Handle logout
   const handleLogout = () => {
-    toast({
-      title: "Logging out",
-      description: "You have been successfully logged out.",
-    });
-    // In a real app, clear auth tokens, etc.
-    setTimeout(() => navigate("/login"), 1000);
+    logout();
+    navigate("/login");
   };
+
+  // Get user name and initials
+  const userName = state.user?.name || 
+    (userType === "volunteer" ? "John Doe" : 
+     userType === "organizer" ? "Event Organizer" : "Admin User");
+  
+  const userInitials = userName.split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase();
 
   return (
     <div className="flex min-h-screen w-full">
@@ -218,14 +226,12 @@ export default function DashboardLayout({ children, userType }: DashboardLayoutP
                 >
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src="/placeholder.svg" alt="User" />
-                      <AvatarFallback>
-                        {userType === "volunteer" ? "JD" : userType === "organizer" ? "EO" : "AD"}
-                      </AvatarFallback>
+                      <AvatarImage src="/placeholder.svg" alt={userName} />
+                      <AvatarFallback>{userInitials}</AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col text-left">
                       <span className="text-sm font-medium">
-                        {userType === "volunteer" ? "John Doe" : userType === "organizer" ? "Event Organizer" : "Admin User"}
+                        {userName}
                       </span>
                       <span className="text-xs text-muted-foreground capitalize">
                         {userType}
