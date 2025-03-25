@@ -68,15 +68,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const token = localStorage.getItem('token');
       
       if (token) {
-        const user = getUserFromToken(token);
-        
-        if (user) {
-          dispatch({
-            type: 'LOGIN_SUCCESS',
-            payload: { user, token },
-          });
-        } else {
-          // Token is invalid
+        try {
+          const user = getUserFromToken(token);
+          
+          if (user) {
+            dispatch({
+              type: 'LOGIN_SUCCESS',
+              payload: { user, token },
+            });
+            console.log('User authenticated from token:', user);
+          } else {
+            // Token is invalid
+            console.log('Invalid token, logging out');
+            localStorage.removeItem('token');
+            dispatch({ type: 'LOGOUT' });
+          }
+        } catch (error) {
+          console.error('Error checking authentication:', error);
           localStorage.removeItem('token');
           dispatch({ type: 'LOGOUT' });
         }
@@ -89,6 +97,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = (user: User, token: string) => {
+    console.log('Login successful:', user);
+    
     // Save token to localStorage
     localStorage.setItem('token', token);
     
@@ -105,6 +115,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    console.log('Logging out');
+    
     // Remove token from localStorage
     localStorage.removeItem('token');
     

@@ -35,6 +35,7 @@ const parseToken = (token: string): any | null => {
 // Initialize localStorage with mock data if it doesn't exist
 const initializeLocalStorage = () => {
   if (!localStorage.getItem(USERS_STORAGE_KEY)) {
+    console.log('Initializing localStorage with mock users:', MOCK_USERS);
     localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(MOCK_USERS));
   }
 };
@@ -92,18 +93,23 @@ export const registerUser = (userData: Omit<User, 'id' | 'role' | 'createdAt'> &
 
 // Login function that verifies credentials and returns a token
 export const login = (email: string, password?: string, name?: string, mobile?: string): { user: User; token: string } | null => {
+  console.log('Login attempt:', { email, password: password ? '******' : undefined, name, mobile });
+  
   initializeLocalStorage();
   const users = getUsers();
+  console.log('Available users:', users);
   
   // Find the user
   const user = users.find((u: any) => {
     // For volunteer login (email + name + mobile)
     if (u.role === 'volunteer' && email === u.email && name === u.name && mobile === u.mobile) {
+      console.log('Volunteer match found');
       return true;
     }
     
     // For organizer/admin login (email + password)
     if ((u.role === 'organizer' || u.role === 'admin') && email === u.email && password === u.password) {
+      console.log('Organizer/Admin match found');
       return true;
     }
     
@@ -111,8 +117,11 @@ export const login = (email: string, password?: string, name?: string, mobile?: 
   });
 
   if (!user) {
+    console.log('No matching user found');
     return null;
   }
+
+  console.log('User authenticated:', user);
 
   // Create a user object without the password
   const { password: _, ...userData } = user;
