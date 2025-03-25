@@ -1,23 +1,11 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { 
-  Calendar, 
-  Clock, 
-  MapPin, 
-  Users, 
-  Search,
-  Filter,
-  ArrowLeft
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import EventsHeader from "@/components/events/EventsHeader";
+import SearchFilter from "@/components/events/SearchFilter";
+import EventsList from "@/components/events/EventsList";
+import EventsPagination from "@/components/events/EventsPagination";
 
 export default function Events() {
-  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   
   // Events data - in a real app this would come from an API
@@ -105,135 +93,12 @@ export default function Events() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-accent py-8">
-        <div className="container max-w-6xl">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate("/")}
-            className="mb-4"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Home
-          </Button>
-          <h1 className="text-3xl font-bold">Volunteer Events</h1>
-          <p className="text-muted-foreground mt-2">
-            Find opportunities to make a difference in your community
-          </p>
-        </div>
-      </header>
+      <EventsHeader />
+      <SearchFilter searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
 
-      {/* Search and Filter */}
-      <div className="bg-accent/50 py-4 border-y">
-        <div className="container max-w-6xl">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name, organization or location"
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <Button variant="outline" size="icon">
-              <Filter className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Events List */}
       <div className="container max-w-6xl py-8">
-        {filteredEvents.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">No events found matching your search criteria.</p>
-          </div>
-        ) : (
-          <div className="grid gap-6">
-            {filteredEvents.map((event) => (
-              <Card 
-                key={event.id} 
-                className="overflow-hidden transition-all hover:shadow-md"
-                onClick={() => navigate(`/events/${event.id}`)}
-              >
-                <CardContent className="p-0">
-                  <div className="flex flex-col sm:flex-row cursor-pointer">
-                    <div className="sm:w-48 h-48 overflow-hidden">
-                      <img 
-                        src={event.image} 
-                        alt={event.title} 
-                        className="h-full w-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = "/placeholder.svg";
-                        }}
-                      />
-                    </div>
-                    <div className="flex-1 p-6">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                        <h3 className="text-xl font-semibold">{event.title}</h3>
-                        <Badge variant="outline" className="w-fit">
-                          {event.status === "upcoming" ? "Upcoming" : event.status}
-                        </Badge>
-                      </div>
-                      
-                      <p className="text-sm text-muted-foreground mt-1">{event.organization}</p>
-                      
-                      <p className="mt-3 line-clamp-2">{event.description}</p>
-                      
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 mt-4">
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Calendar className="mr-2 h-4 w-4" />
-                          <span>{event.date}</span>
-                        </div>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Clock className="mr-2 h-4 w-4" />
-                          <span>{event.time}</span>
-                        </div>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <MapPin className="mr-2 h-4 w-4" />
-                          <span>{event.location}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-4 flex items-center justify-between">
-                        <div className="flex items-center text-sm">
-                          <Users className="mr-1 h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">{event.participants} volunteers</span>
-                        </div>
-                        <Button size="sm">View Details</Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Pagination */}
-        <Pagination className="mt-8">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious href="#" />
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#" isActive>1</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#">2</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#">3</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationEllipsis />
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationNext href="#" />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+        <EventsList filteredEvents={filteredEvents} />
+        <EventsPagination />
       </div>
     </div>
   );
