@@ -1,14 +1,34 @@
 
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 interface SearchFilterProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  locationFilter?: string;
+  onSearchChange?: (query: string) => void;
+  onLocationChange?: (location: string) => void;
 }
 
-export default function SearchFilter({ searchQuery, setSearchQuery }: SearchFilterProps) {
+export default function SearchFilter({ 
+  searchQuery, 
+  setSearchQuery,
+  locationFilter,
+  onSearchChange,
+  onLocationChange
+}: SearchFilterProps) {
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Use the appropriate handler based on what's provided
+    if (onSearchChange) {
+      onSearchChange(value);
+    } else {
+      setSearchQuery(value);
+    }
+  };
+
   return (
     <div className="bg-accent/50 py-4 border-y">
       <div className="container max-w-6xl">
@@ -19,7 +39,7 @@ export default function SearchFilter({ searchQuery, setSearchQuery }: SearchFilt
               placeholder="Search by name, organization or location"
               className="pl-10"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchChange}
             />
           </div>
           <Button variant="outline" size="icon">
