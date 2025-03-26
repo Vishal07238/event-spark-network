@@ -1,200 +1,118 @@
 
-import { useEffect, useState } from "react";
-import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ArrowLeft, Home, RefreshCw, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function NotFound() {
-  const location = useLocation();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const navigate = useNavigate();
-  const [attemptedPath, setAttemptedPath] = useState("");
-  const [suggestedRoutes, setSuggestedRoutes] = useState<string[]>([]);
-  
-  useEffect(() => {
-    // Log the 404 error
-    const path = location.pathname;
-    setAttemptedPath(path);
-    console.error("404 Error: User attempted to access non-existent route:", path);
-    
-    // Generate suggested routes based on the attempted path
-    generateSuggestions(path);
-  }, [location.pathname]);
-  
-  // Generate route suggestions based on the attempted path
-  const generateSuggestions = (path: string) => {
-    const suggestions: string[] = [];
-    
-    // Common routes
-    const commonRoutes = [
-      '/events',
-      '/volunteer/dashboard',
-      '/volunteer/events',
-      '/volunteer/messages',
-      '/volunteer/tasks',
-      '/volunteer/profile',
-      '/organizer/dashboard',
-      '/organizer/events',
-      '/admin/dashboard'
-    ];
-    
-    // Try to make educated suggestions based on the path
-    const pathSegments = path.split('/').filter(segment => segment);
-    
-    if (pathSegments.length > 0) {
-      // Check for user type in path
-      const userTypes = ['volunteer', 'organizer', 'admin'];
-      
-      // If first segment is a user type
-      if (userTypes.includes(pathSegments[0])) {
-        const userType = pathSegments[0];
-        
-        // Add dashboard as first suggestion
-        suggestions.push(`/${userType}/dashboard`);
-        
-        // Add other routes for this user type
-        commonRoutes
-          .filter(route => route.startsWith(`/${userType}/`))
-          .forEach(route => {
-            if (!suggestions.includes(route)) {
-              suggestions.push(route);
-            }
-          });
-      } 
-      // Check for other common paths
-      else if (pathSegments[0] === 'events' && pathSegments.length > 1) {
-        // If they tried to access a specific event with an invalid ID
-        suggestions.push('/events');
-      } else {
-        // Try to find similar routes
-        commonRoutes.forEach(route => {
-          const routeSegments = route.split('/').filter(segment => segment);
-          if (routeSegments.some(segment => 
-            pathSegments.some(pathSegment => 
-              segment.toLowerCase().includes(pathSegment.toLowerCase()) ||
-              pathSegment.toLowerCase().includes(segment.toLowerCase())
-            )
-          )) {
-            suggestions.push(route);
-          }
-        });
-      }
-    }
-    
-    // If no good suggestions were found, add default ones
-    if (suggestions.length === 0) {
-      suggestions.push('/');
-      suggestions.push('/events');
-      
-      // Add user-specific dashboard if path contains user type
-      userTypes.forEach(userType => {
-        if (path.includes(userType)) {
-          suggestions.push(`/${userType}/dashboard`);
-        }
-      });
-    }
-    
-    // Remove duplicates and limit to 3 suggestions
-    const uniqueSuggestions = [...new Set(suggestions)];
-    setSuggestedRoutes(uniqueSuggestions.slice(0, 3));
+  const { state } = useAuth();
+  const userRole = state.user?.role || "visitor";
+
+  // Common routes for all user types
+  const commonRoutes = [
+    { path: "/", label: "Home" },
+    { path: "/events", label: "Events" },
+    { path: "/login", label: "Login" },
+    { path: "/register", label: "Register" }
+  ];
+
+  // Role-specific routes
+  const roleSpecificRoutes: Record<string, { path: string; label: string }[]> = {
+    volunteer: [
+      { path: "/volunteer/dashboard", label: "Volunteer Dashboard" },
+      { path: "/volunteer/events", label: "My Events" },
+      { path: "/volunteer/tasks", label: "My Tasks" },
+      { path: "/volunteer/profile", label: "My Profile" }
+    ],
+    organizer: [
+      { path: "/organizer/dashboard", label: "Organizer Dashboard" },
+      { path: "/organizer/events", label: "Manage Events" }
+    ],
+    admin: [
+      { path: "/admin/dashboard", label: "Admin Dashboard" }
+    ],
+    visitor: []
   };
 
-  // Generate the best back link based on the current path
-  const getBestBackLink = () => {
-    const path = location.pathname;
+  // Get available routes based on user role
+  const availableRoutes = [...commonRoutes, ...(roleSpecificRoutes[userRole] || [])];
+
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
     
-    // If it's an organizer path, go back to organizer dashboard
-    if (path.includes('/organizer')) {
-      return '/organizer/dashboard';
+    if (value.trim() === "") {
+      setSuggestions([]);
+      return;
     }
     
-    // If it's a volunteer path, go back to volunteer dashboard
-    if (path.includes('/volunteer')) {
-      return '/volunteer/dashboard';
-    }
+    // Filter available routes based on search query
+    const filteredSuggestions = availableRoutes
+      .filter(route => 
+        route.label.toLowerCase().includes(value.toLowerCase()) ||
+        route.path.toLowerCase().includes(value.toLowerCase())
+      )
+      .map(route => route.path);
     
-    // If it's an admin path, go back to admin dashboard
-    if (path.includes('/admin')) {
-      return '/admin/dashboard';
-    }
-    
-    // Default to home
-    return '/';
+    setSuggestions(filteredSuggestions);
   };
-  
-  const bestBackLink = getBestBackLink();
-  
-  // Handle retry current path
-  const handleRetry = () => {
-    window.location.href = location.pathname;
+
+  // Handle search submission
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (suggestions.length > 0) {
+      navigate(suggestions[0]);
+    }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
-      <div className="max-w-md w-full text-center space-y-6 animate-fade-in">
-        <div className="relative mx-auto w-24 h-24 mb-8">
-          <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-          <div className="relative bg-background border-2 border-primary rounded-full w-full h-full flex items-center justify-center">
-            <span className="text-3xl font-bold text-primary">404</span>
-          </div>
-        </div>
+    <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
+      <h1 className="text-6xl font-bold text-primary mb-4">404</h1>
+      <h2 className="text-2xl font-semibold mb-6">Page Not Found</h2>
+      
+      <p className="text-muted-foreground mb-8 max-w-md">
+        Sorry, the page you are looking for doesn't exist or has been moved.
+      </p>
+      
+      <form onSubmit={handleSearchSubmit} className="relative w-full max-w-md mb-6">
+        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder="Search for pages..."
+          className="pl-10"
+          value={searchQuery}
+          onChange={handleSearchChange}
+        />
         
-        <h1 className="text-3xl font-bold tracking-tight">Page not found</h1>
-        
-        <p className="text-muted-foreground">
-          Sorry, we couldn't find the page you're looking for. It might have been moved or doesn't exist.
-        </p>
-        
-        <Alert className="bg-accent/50 border-accent my-4">
-          <Search className="h-4 w-4" />
-          <AlertTitle>Attempted to access:</AlertTitle>
-          <AlertDescription className="font-mono text-sm">
-            {attemptedPath || location.pathname}
-          </AlertDescription>
-        </Alert>
-        
-        <div className="pt-4 flex flex-col sm:flex-row gap-4 justify-center">
-          <Button 
-            onClick={() => navigate(-1)}
-            variant="outline"
-            className="gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Go back
-          </Button>
-          
-          <Button 
-            onClick={() => navigate(bestBackLink)}
-            className="gap-2"
-          >
-            <Home className="h-4 w-4" />
-            {bestBackLink === '/' ? 'Home' : 'Dashboard'}
-          </Button>
-          
-          <Button
-            onClick={handleRetry}
-            variant="outline"
-            className="gap-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Retry
-          </Button>
-        </div>
-        
-        <div className="mt-8 text-sm text-muted-foreground">
-          <p>Were you looking for one of these pages?</p>
-          <div className="mt-2 flex flex-wrap gap-2 justify-center">
-            {suggestedRoutes.map((route, index) => (
-              <Link 
-                key={index} 
-                to={route} 
-                className="text-primary hover:underline"
+        {suggestions.length > 0 && (
+          <div className="absolute w-full bg-background border rounded-md mt-1 shadow-md z-10">
+            {suggestions.map((suggestion, index) => (
+              <Link
+                key={index}
+                to={suggestion}
+                className="block p-2 hover:bg-accent text-left"
               >
-                {route === '/' ? 'Home' : route.replace(/\//g, ' / ').trim()}
+                {suggestion}
               </Link>
             ))}
           </div>
-        </div>
+        )}
+      </form>
+      
+      <div className="space-y-4">
+        <Button onClick={() => navigate(-1)} variant="outline">
+          Go Back
+        </Button>
+        <Button asChild>
+          <Link to="/">Back to Home</Link>
+        </Button>
       </div>
     </div>
   );

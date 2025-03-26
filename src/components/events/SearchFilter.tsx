@@ -14,7 +14,7 @@ interface SearchFilterProps {
 export default function SearchFilter({ 
   searchQuery, 
   setSearchQuery,
-  locationFilter,
+  locationFilter = "",
   onSearchChange,
   onLocationChange
 }: SearchFilterProps) {

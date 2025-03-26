@@ -150,7 +150,13 @@ export const useHasRole = (roles: UserRole | UserRole[]) => {
   const { state } = useAuth();
   const rolesToCheck = Array.isArray(roles) ? roles : [roles];
   
-  return state.isAuthenticated && 
-    state.user && 
-    rolesToCheck.includes(state.user.role);
+  // Make sure we have a user with a role before checking
+  if (!state.isAuthenticated || !state.user || !state.user.role) {
+    return false;
+  }
+  
+  // Debug log to help troubleshoot role issues
+  console.log(`Checking roles: User has ${state.user.role}, needs one of ${rolesToCheck.join(', ')}`);
+  
+  return rolesToCheck.includes(state.user.role);
 };
