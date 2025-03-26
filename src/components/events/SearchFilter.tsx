@@ -29,6 +29,14 @@ export default function SearchFilter({
     }
   };
 
+  // Handle location filter change
+  const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (onLocationChange) {
+      onLocationChange(value);
+    }
+  };
+
   return (
     <div className="bg-accent/50 py-4 border-y">
       <div className="container max-w-6xl">
@@ -36,12 +44,23 @@ export default function SearchFilter({
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name, organization or location"
+              placeholder="Search by name, organization or description"
               className="pl-10"
               value={searchQuery}
               onChange={handleSearchChange}
             />
           </div>
+          
+          <div className="relative flex-1">
+            <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Filter by location"
+              className="pl-10"
+              value={locationFilter}
+              onChange={handleLocationChange}
+            />
+          </div>
+          
           <Button variant="outline" size="icon">
             <Filter className="h-4 w-4" />
           </Button>

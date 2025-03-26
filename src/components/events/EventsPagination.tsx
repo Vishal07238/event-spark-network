@@ -10,14 +10,14 @@ import {
 } from "@/components/ui/pagination";
 
 interface EventsPaginationProps {
-  currentPage?: number;
-  totalPages?: number;
-  onPageChange?: (page: number) => void;
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
 export default function EventsPagination({ 
-  currentPage = 1, 
-  totalPages = 1, 
+  currentPage, 
+  totalPages, 
   onPageChange 
 }: EventsPaginationProps) {
   
@@ -33,7 +33,7 @@ export default function EventsPagination({
           isActive={currentPage === 1}
           onClick={(e) => {
             e.preventDefault();
-            if (onPageChange) onPageChange(1);
+            onPageChange(1);
           }}
         >
           1
@@ -60,7 +60,7 @@ export default function EventsPagination({
             isActive={currentPage === i}
             onClick={(e) => {
               e.preventDefault();
-              if (onPageChange) onPageChange(i);
+              onPageChange(i);
             }}
           >
             {i}
@@ -87,7 +87,7 @@ export default function EventsPagination({
             isActive={currentPage === totalPages}
             onClick={(e) => {
               e.preventDefault();
-              if (onPageChange) onPageChange(totalPages);
+              onPageChange(totalPages);
             }}
           >
             {totalPages}
@@ -112,7 +112,7 @@ export default function EventsPagination({
             href="#" 
             onClick={(e) => {
               e.preventDefault();
-              if (onPageChange && currentPage > 1) onPageChange(currentPage - 1);
+              if (currentPage > 1) onPageChange(currentPage - 1);
             }}
           />
         </PaginationItem>
@@ -124,7 +124,7 @@ export default function EventsPagination({
             href="#" 
             onClick={(e) => {
               e.preventDefault();
-              if (onPageChange && currentPage < totalPages) onPageChange(currentPage + 1);
+              if (currentPage < totalPages) onPageChange(currentPage + 1);
             }}
           />
         </PaginationItem>

@@ -1,19 +1,103 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Home } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ArrowLeft, Home, RefreshCw, Search } from "lucide-react";
 
 export default function NotFound() {
   const location = useLocation();
   const navigate = useNavigate();
-
+  const [attemptedPath, setAttemptedPath] = useState("");
+  const [suggestedRoutes, setSuggestedRoutes] = useState<string[]>([]);
+  
   useEffect(() => {
-    console.error(
-      "404 Error: User attempted to access non-existent route:",
-      location.pathname
-    );
+    // Log the 404 error
+    const path = location.pathname;
+    setAttemptedPath(path);
+    console.error("404 Error: User attempted to access non-existent route:", path);
+    
+    // Generate suggested routes based on the attempted path
+    generateSuggestions(path);
   }, [location.pathname]);
+  
+  // Generate route suggestions based on the attempted path
+  const generateSuggestions = (path: string) => {
+    const suggestions: string[] = [];
+    
+    // Common routes
+    const commonRoutes = [
+      '/events',
+      '/volunteer/dashboard',
+      '/volunteer/events',
+      '/volunteer/messages',
+      '/volunteer/tasks',
+      '/volunteer/profile',
+      '/organizer/dashboard',
+      '/organizer/events',
+      '/admin/dashboard'
+    ];
+    
+    // Try to make educated suggestions based on the path
+    const pathSegments = path.split('/').filter(segment => segment);
+    
+    if (pathSegments.length > 0) {
+      // Check for user type in path
+      const userTypes = ['volunteer', 'organizer', 'admin'];
+      
+      // If first segment is a user type
+      if (userTypes.includes(pathSegments[0])) {
+        const userType = pathSegments[0];
+        
+        // Add dashboard as first suggestion
+        suggestions.push(`/${userType}/dashboard`);
+        
+        // Add other routes for this user type
+        commonRoutes
+          .filter(route => route.startsWith(`/${userType}/`))
+          .forEach(route => {
+            if (!suggestions.includes(route)) {
+              suggestions.push(route);
+            }
+          });
+      } 
+      // Check for other common paths
+      else if (pathSegments[0] === 'events' && pathSegments.length > 1) {
+        // If they tried to access a specific event with an invalid ID
+        suggestions.push('/events');
+      } else {
+        // Try to find similar routes
+        commonRoutes.forEach(route => {
+          const routeSegments = route.split('/').filter(segment => segment);
+          if (routeSegments.some(segment => 
+            pathSegments.some(pathSegment => 
+              segment.toLowerCase().includes(pathSegment.toLowerCase()) ||
+              pathSegment.toLowerCase().includes(segment.toLowerCase())
+            )
+          )) {
+            suggestions.push(route);
+          }
+        });
+      }
+    }
+    
+    // If no good suggestions were found, add default ones
+    if (suggestions.length === 0) {
+      suggestions.push('/');
+      suggestions.push('/events');
+      
+      // Add user-specific dashboard if path contains user type
+      userTypes.forEach(userType => {
+        if (path.includes(userType)) {
+          suggestions.push(`/${userType}/dashboard`);
+        }
+      });
+    }
+    
+    // Remove duplicates and limit to 3 suggestions
+    const uniqueSuggestions = [...new Set(suggestions)];
+    setSuggestedRoutes(uniqueSuggestions.slice(0, 3));
+  };
 
   // Generate the best back link based on the current path
   const getBestBackLink = () => {
@@ -39,6 +123,11 @@ export default function NotFound() {
   };
   
   const bestBackLink = getBestBackLink();
+  
+  // Handle retry current path
+  const handleRetry = () => {
+    window.location.href = location.pathname;
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
@@ -55,6 +144,14 @@ export default function NotFound() {
         <p className="text-muted-foreground">
           Sorry, we couldn't find the page you're looking for. It might have been moved or doesn't exist.
         </p>
+        
+        <Alert className="bg-accent/50 border-accent my-4">
+          <Search className="h-4 w-4" />
+          <AlertTitle>Attempted to access:</AlertTitle>
+          <AlertDescription className="font-mono text-sm">
+            {attemptedPath || location.pathname}
+          </AlertDescription>
+        </Alert>
         
         <div className="pt-4 flex flex-col sm:flex-row gap-4 justify-center">
           <Button 
@@ -73,14 +170,29 @@ export default function NotFound() {
             <Home className="h-4 w-4" />
             {bestBackLink === '/' ? 'Home' : 'Dashboard'}
           </Button>
+          
+          <Button
+            onClick={handleRetry}
+            variant="outline"
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Retry
+          </Button>
         </div>
         
         <div className="mt-8 text-sm text-muted-foreground">
-          <p>Looking for one of these pages?</p>
+          <p>Were you looking for one of these pages?</p>
           <div className="mt-2 flex flex-wrap gap-2 justify-center">
-            <Link to="/events" className="text-primary hover:underline">Events</Link>
-            <Link to="/volunteer/dashboard" className="text-primary hover:underline">Volunteer Dashboard</Link>
-            <Link to="/organizer/events" className="text-primary hover:underline">Organizer Events</Link>
+            {suggestedRoutes.map((route, index) => (
+              <Link 
+                key={index} 
+                to={route} 
+                className="text-primary hover:underline"
+              >
+                {route === '/' ? 'Home' : route.replace(/\//g, ' / ').trim()}
+              </Link>
+            ))}
           </div>
         </div>
       </div>

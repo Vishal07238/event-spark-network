@@ -1,16 +1,20 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import EventsHeader from "@/components/events/EventsHeader";
 import EventsList from "@/components/events/EventsList";
 import SearchFilter from "@/components/events/SearchFilter";
 import EventsPagination from "@/components/events/EventsPagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRealTimeEvents } from "@/hooks/useRealTimeEvents";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 export default function Events() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const eventsPerPage = 5;
   
   const { 
@@ -18,8 +22,19 @@ export default function Events() {
     isLoading, 
     isRealtimeEnabled,
     toggleRealtime,
-    realtimeStatus
+    realtimeStatus,
+    forceReconnect,
+    refetch,
+    lastUpdate
   } = useRealTimeEvents({ enabled: true });
+  
+  // Display last update time
+  useEffect(() => {
+    if (lastUpdate) {
+      const timeString = lastUpdate.toLocaleTimeString();
+      console.log(`Events last updated at: ${timeString}`);
+    }
+  }, [lastUpdate]);
   
   // Filter events based on search query and location
   const filteredEvents = events.filter(event => {
@@ -58,6 +73,25 @@ export default function Events() {
     setCurrentPage(1);
   };
   
+  // Handle manual refresh with loading state
+  const handleManualRefresh = async () => {
+    if (isRefreshing) return;
+    
+    setIsRefreshing(true);
+    try {
+      await refetch();
+    } catch (error) {
+      console.error("Error refreshing events:", error);
+      toast({
+        title: "Refresh failed",
+        description: "Could not refresh events. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+  
   return (
     <div className="min-h-screen flex flex-col">
       <EventsHeader 
@@ -75,6 +109,30 @@ export default function Events() {
             onSearchChange={handleSearch}
             onLocationChange={handleLocationFilter}
           />
+        </div>
+        
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-xl font-semibold">
+              {filteredEvents.length} {filteredEvents.length === 1 ? 'Event' : 'Events'} Found
+            </h2>
+            {lastUpdate && (
+              <p className="text-sm text-muted-foreground">
+                Last updated: {lastUpdate.toLocaleTimeString()}
+              </p>
+            )}
+          </div>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleManualRefresh}
+            disabled={isRefreshing || isLoading}
+            className="flex items-center gap-1"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
         </div>
         
         {isLoading ? (
