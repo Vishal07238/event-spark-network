@@ -14,6 +14,7 @@ export function useRealTimeEvents(options: {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [realtimeEnabled, setRealtimeEnabled] = useState(options.enabled !== false);
+  const [lastError, setLastError] = useState<Error | null>(null);
   
   // Standard query to get events
   const { 
@@ -32,9 +33,17 @@ export function useRealTimeEvents(options: {
           return allEvents.filter((event: Event) => event.organizerId === options.organizerId);
         }
         
+        // Filter by volunteerId if provided (for events a volunteer has registered for)
+        if (options.volunteerId) {
+          return allEvents.filter((event: Event) => 
+            event.registeredUsers?.includes(options.volunteerId as string)
+          );
+        }
+        
         return allEvents;
       } catch (err) {
         console.error('Error fetching events:', err);
+        setLastError(err instanceof Error ? err : new Error('Unknown error'));
         toast({
           title: "Error fetching events",
           description: "Couldn't load events. Please try again later.",
@@ -46,13 +55,15 @@ export function useRealTimeEvents(options: {
     refetchInterval: realtimeEnabled ? false : 30000, // Poll only if realtime is disabled
   });
   
-  // Handle WebSocket for real-time updates
-  const { status: wsStatus, isConnected } = useWebSocket(
+  // Handle WebSocket for real-time updates with improved error handling
+  const { status: wsStatus, isConnected, connect, disconnect } = useWebSocket(
     WEBSOCKET_URL, 
     {
       autoConnect: realtimeEnabled,
+      reconnectAttempts: 5, // Try to reconnect up to 5 times
+      reconnectInterval: 2000, // Wait 2 seconds between retry attempts
       onMessage: (data) => {
-        // In a real app, this would process actual WebSocket messages
+        // Process WebSocket messages and update event cache
         console.log('WebSocket message received:', data);
         queryClient.invalidateQueries({ queryKey: ['events'] });
       },
@@ -60,6 +71,15 @@ export function useRealTimeEvents(options: {
         toast({
           title: "Real-time connected",
           description: "You'll receive live updates to events.",
+        });
+        setLastError(null); // Clear any previous errors
+      },
+      onError: (event) => {
+        console.error('WebSocket error:', event);
+        toast({
+          title: "Connection error",
+          description: "Having trouble with real-time updates. Trying to reconnect...",
+          variant: "destructive",
         });
       }
     }
@@ -106,16 +126,44 @@ export function useRealTimeEvents(options: {
     };
   }, [queryClient, realtimeEnabled, toast]);
   
-  // Toggle real-time updates
+  // Toggle real-time updates with improved connection handling
   const toggleRealtime = useCallback(() => {
-    setRealtimeEnabled(prev => !prev);
-  }, []);
+    setRealtimeEnabled(prev => {
+      const newValue = !prev;
+      if (newValue) {
+        // If enabling, connect immediately
+        connect();
+      } else {
+        // If disabling, disconnect cleanly
+        disconnect();
+      }
+      return newValue;
+    });
+  }, [connect, disconnect]);
+  
+  // Force a manual refresh
+  const refreshEvents = useCallback(async () => {
+    try {
+      await refetch();
+      toast({
+        title: "Events refreshed",
+        description: "The events list has been updated.",
+      });
+    } catch (err) {
+      console.error('Error refreshing events:', err);
+      toast({
+        title: "Refresh failed",
+        description: "Could not refresh events. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [refetch, toast]);
   
   return {
     events,
     isLoading,
-    error,
-    refetch,
+    error: error || lastError,
+    refetch: refreshEvents,
     realtimeStatus: wsStatus,
     isRealtimeEnabled: realtimeEnabled,
     toggleRealtime,

@@ -70,6 +70,7 @@ export default function Events() {
         <div className="mb-8">
           <SearchFilter 
             searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
             locationFilter={locationFilter}
             onSearchChange={handleSearch}
             onLocationChange={handleLocationFilter}
