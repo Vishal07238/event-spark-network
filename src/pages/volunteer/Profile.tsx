@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,15 +7,26 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PlusCircle, Award, Calendar, CheckCircle, Clock } from "lucide-react";
+import { PlusCircle, Award, Calendar, CheckCircle, Clock, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function VolunteerProfile() {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
+  const [newSkill, setNewSkill] = useState("");
+  const [newInterest, setNewInterest] = useState("");
+  const [skillInput, setSkillInput] = useState(false);
+  const [interestInput, setInterestInput] = useState(false);
   
-  // Mock volunteer data
-  const volunteerData = {
+  // Mock volunteer data with state to allow updates
+  const [volunteerData, setVolunteerData] = useState({
     name: "John Doe",
     email: "john.doe@example.com",
     phone: "+1 (555) 123-4567",
@@ -29,18 +39,127 @@ export default function VolunteerProfile() {
       { id: 2, title: "Team Leader", description: "Led a team of 10 volunteers for beach cleanup", date: "July 2023" },
       { id: 3, title: "Special Recognition", description: "Received special recognition for outstanding contribution", date: "August 2023" }
     ],
+    history: [
+      { id: 1, activity: "Beach Cleanup", date: "August 15, 2023", description: "Helped collect 50 pounds of trash from the local beach.", hours: 3 },
+      { id: 2, activity: "Food Drive", date: "July 20, 2023", description: "Assisted in sorting and distributing food packages to 30 families.", hours: 4 },
+      { id: 3, activity: "Animal Shelter Support", date: "June 5, 2023", description: "Walked dogs and helped clean animal enclosures.", hours: 3.5 }
+    ],
     stats: {
       eventsAttended: 12,
       totalHours: 87,
       tasksCompleted: 45
     }
-  };
+  });
 
   const handleSaveProfile = () => {
     setIsEditing(false);
     toast({
       title: "Profile updated",
       description: "Your profile information has been updated successfully.",
+    });
+  };
+
+  const addSkill = () => {
+    if (newSkill.trim()) {
+      const updatedData = {
+        ...volunteerData,
+        skills: [...volunteerData.skills, newSkill.trim()],
+        history: [
+          {
+            id: Date.now(),
+            activity: "Added New Skill",
+            date: new Date().toLocaleDateString(),
+            description: `Added ${newSkill.trim()} to skills list.`,
+            hours: 0
+          },
+          ...volunteerData.history
+        ]
+      };
+      
+      setVolunteerData(updatedData);
+      setNewSkill("");
+      setSkillInput(false);
+      
+      toast({
+        title: "Skill added",
+        description: `"${newSkill.trim()}" has been added to your skills.`,
+      });
+    }
+  };
+
+  const removeSkill = (skillToRemove: string) => {
+    const updatedData = {
+      ...volunteerData,
+      skills: volunteerData.skills.filter(skill => skill !== skillToRemove),
+      history: [
+        {
+          id: Date.now(),
+          activity: "Removed Skill",
+          date: new Date().toLocaleDateString(),
+          description: `Removed ${skillToRemove} from skills list.`,
+          hours: 0
+        },
+        ...volunteerData.history
+      ]
+    };
+    
+    setVolunteerData(updatedData);
+    
+    toast({
+      title: "Skill removed",
+      description: `"${skillToRemove}" has been removed from your skills.`,
+    });
+  };
+
+  const addInterest = () => {
+    if (newInterest.trim()) {
+      const updatedData = {
+        ...volunteerData,
+        interests: [...volunteerData.interests, newInterest.trim()],
+        history: [
+          {
+            id: Date.now(),
+            activity: "Added New Interest",
+            date: new Date().toLocaleDateString(),
+            description: `Added ${newInterest.trim()} to interests list.`,
+            hours: 0
+          },
+          ...volunteerData.history
+        ]
+      };
+      
+      setVolunteerData(updatedData);
+      setNewInterest("");
+      setInterestInput(false);
+      
+      toast({
+        title: "Interest added",
+        description: `"${newInterest.trim()}" has been added to your interests.`,
+      });
+    }
+  };
+
+  const removeInterest = (interestToRemove: string) => {
+    const updatedData = {
+      ...volunteerData,
+      interests: volunteerData.interests.filter(interest => interest !== interestToRemove),
+      history: [
+        {
+          id: Date.now(),
+          activity: "Removed Interest",
+          date: new Date().toLocaleDateString(),
+          description: `Removed ${interestToRemove} from interests list.`,
+          hours: 0
+        },
+        ...volunteerData.history
+      ]
+    };
+    
+    setVolunteerData(updatedData);
+    
+    toast({
+      title: "Interest removed",
+      description: `"${interestToRemove}" has been removed from your interests.`,
     });
   };
 
@@ -65,6 +184,7 @@ export default function VolunteerProfile() {
               </TabsList>
               
               <TabsContent value="profile" className="mt-6 space-y-6">
+                
                 <Card>
                   <CardHeader>
                     <CardTitle>Personal Information</CardTitle>
@@ -130,6 +250,7 @@ export default function VolunteerProfile() {
                   </CardFooter>
                 </Card>
 
+                
                 <Card>
                   <CardHeader>
                     <CardTitle>Account Settings</CardTitle>
@@ -171,14 +292,59 @@ export default function VolunteerProfile() {
                   <CardContent>
                     <div className="flex flex-wrap gap-2 mb-4">
                       {volunteerData.skills.map((skill, index) => (
-                        <Badge key={index} variant="outline" className="py-1.5">
+                        <Badge key={index} variant="outline" className="py-1.5 pr-1.5 pl-3">
                           {skill}
+                          <button 
+                            onClick={() => removeSkill(skill)}
+                            className="ml-1 rounded-full hover:bg-muted p-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
                         </Badge>
                       ))}
-                      <Button variant="outline" size="sm" className="flex items-center gap-1">
-                        <PlusCircle className="h-3.5 w-3.5" />
-                        <span>Add Skill</span>
-                      </Button>
+                      
+                      {skillInput ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={newSkill}
+                            onChange={(e) => setNewSkill(e.target.value)}
+                            placeholder="Enter skill..."
+                            className="w-40 h-8"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                addSkill();
+                              }
+                            }}
+                          />
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={addSkill}
+                          >
+                            Add
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => {
+                              setSkillInput(false);
+                              setNewSkill("");
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex items-center gap-1"
+                          onClick={() => setSkillInput(true)}
+                        >
+                          <PlusCircle className="h-3.5 w-3.5" />
+                          <span>Add Skill</span>
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -193,14 +359,59 @@ export default function VolunteerProfile() {
                   <CardContent>
                     <div className="flex flex-wrap gap-2 mb-4">
                       {volunteerData.interests.map((interest, index) => (
-                        <Badge key={index} variant="outline" className="py-1.5">
+                        <Badge key={index} variant="outline" className="py-1.5 pr-1.5 pl-3">
                           {interest}
+                          <button 
+                            onClick={() => removeInterest(interest)}
+                            className="ml-1 rounded-full hover:bg-muted p-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
                         </Badge>
                       ))}
-                      <Button variant="outline" size="sm" className="flex items-center gap-1">
-                        <PlusCircle className="h-3.5 w-3.5" />
-                        <span>Add Interest</span>
-                      </Button>
+                      
+                      {interestInput ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={newInterest}
+                            onChange={(e) => setNewInterest(e.target.value)}
+                            placeholder="Enter interest..."
+                            className="w-40 h-8"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                addInterest();
+                              }
+                            }}
+                          />
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={addInterest}
+                          >
+                            Add
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => {
+                              setInterestInput(false);
+                              setNewInterest("");
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex items-center gap-1"
+                          onClick={() => setInterestInput(true)}
+                        >
+                          <PlusCircle className="h-3.5 w-3.5" />
+                          <span>Add Interest</span>
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -217,27 +428,25 @@ export default function VolunteerProfile() {
                   <CardContent>
                     <div className="space-y-6">
                       <div className="border-l-2 border-muted pl-4 space-y-6">
-                        {[...Array(3)].map((_, index) => (
-                          <div key={index} className="relative">
+                        {volunteerData.history.map((item) => (
+                          <div key={item.id} className="relative">
                             <div className="absolute -left-6 top-0 h-4 w-4 rounded-full bg-primary"></div>
                             <div className="space-y-1">
                               <h4 className="font-medium">
-                                {index === 0 ? "Beach Cleanup" : index === 1 ? "Food Drive" : "Animal Shelter Support"}
+                                {item.activity}
                               </h4>
                               <p className="text-sm text-muted-foreground">
-                                {index === 0 ? "August 15, 2023" : index === 1 ? "July 20, 2023" : "June 5, 2023"}
+                                {item.date}
                               </p>
                               <p className="text-sm">
-                                {index === 0 
-                                  ? "Helped collect 50 pounds of trash from the local beach." 
-                                  : index === 1 
-                                    ? "Assisted in sorting and distributing food packages to 30 families." 
-                                    : "Walked dogs and helped clean animal enclosures."}
+                                {item.description}
                               </p>
-                              <div className="flex items-center text-sm text-muted-foreground mt-1">
-                                <Clock className="mr-1 h-4 w-4" />
-                                <span>{index === 0 ? "3 hours" : index === 1 ? "4 hours" : "3.5 hours"}</span>
-                              </div>
+                              {item.hours > 0 && (
+                                <div className="flex items-center text-sm text-muted-foreground mt-1">
+                                  <Clock className="mr-1 h-4 w-4" />
+                                  <span>{item.hours} hours</span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         ))}
