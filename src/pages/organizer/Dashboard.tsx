@@ -1,244 +1,231 @@
 
-import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import DashboardLayout from "@/layouts/DashboardLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Users, BarChart, Clock, CalendarCheck } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { 
+  Calendar,
+  Clock,
+  MapPin,
+  Users,
+  CheckCircle2,
+  ListPlus,
+  BarChart,
+  FileEdit,
+  Trash2,
+  PlusCircle
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import DashboardLayout from "@/layouts/DashboardLayout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "@/services/api";
 import { Event } from "@/types/auth";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 
 export default function OrganizerDashboard() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { state } = useAuth();
-  const [stats, setStats] = useState({
-    totalEvents: 0,
-    totalVolunteers: 0,
-    upcomingEvents: 0,
-    completedEvents: 0
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Get user info
+  const organizerId = state.user?.id;
+  const organizerName = state.user?.name;
+
+  // Fetch events created by this organizer
+  const { 
+    data: myEvents = [], 
+    isLoading: isLoadingEvents,
+    error 
+  } = useQuery({
+    queryKey: ['organizer-events', organizerId],
+    queryFn: async () => {
+      if (!organizerId) return [];
+      const allEvents = await api.events.getAll();
+      return allEvents.filter((event: Event) => event.organizerId === organizerId);
+    },
+    enabled: !!organizerId
   });
-  const [recentEvents, setRecentEvents] = useState<Event[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setIsLoading(true);
-        if (!state.user?.id) return;
+    // Simulate loading state for animations
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 100);
+    
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Error loading events",
+        description: "Unable to load your events. Please try again later."
+      });
+    }
+    
+    return () => clearTimeout(timer);
+  }, [error, toast]);
 
-        // Fetch events created by this organizer
-        const allEvents = await api.events.getAll();
-        const organizerEvents = allEvents.filter((event: Event) => 
-          event.organizerId === state.user?.id
-        );
+  const handleCreateEvent = () => {
+    navigate("/organizer/events/create");
+  };
 
-        // Calculate stats
-        const upcomingEvents = organizerEvents.filter((event: Event) => 
-          event.status === "upcoming"
-        );
-        
-        const completedEvents = organizerEvents.filter((event: Event) => 
-          event.status === "completed"
-        );
+  const handleManageEvent = (eventId: number) => {
+    navigate(`/organizer/events/${eventId}`);
+  };
 
-        // Count total unique volunteers
-        const uniqueVolunteers = new Set();
-        organizerEvents.forEach((event: Event) => {
-          if (event.registeredUsers) {
-            event.registeredUsers.forEach(userId => uniqueVolunteers.add(userId));
-          }
-        });
-
-        // Sort events by date (newest first) and take the most recent ones
-        const sortedEvents = [...organizerEvents].sort((a, b) => 
-          new Date(b.date).getTime() - new Date(a.date).getTime()
-        ).slice(0, 5);
-
-        setStats({
-          totalEvents: organizerEvents.length,
-          totalVolunteers: uniqueVolunteers.size,
-          upcomingEvents: upcomingEvents.length,
-          completedEvents: completedEvents.length
-        });
-
-        setRecentEvents(sortedEvents);
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchDashboardData();
-  }, [state.user?.id]);
+  const stats = [
+    { label: "Organized Events", value: myEvents.length, icon: Calendar },
+    { label: "Volunteer Signups", value: myEvents.reduce((sum, event) => sum + (event.participants || 0), 0), icon: Users },
+    { label: "Upcoming Events", value: myEvents.filter(e => e.status === "upcoming").length, icon: Clock },
+    { label: "Completed Events", value: myEvents.filter(e => e.status === "completed").length, icon: CheckCircle2 }
+  ];
 
   return (
     <DashboardLayout userType="organizer">
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Welcome, {state.user?.name || "Organizer"}
-          </h1>
+      <div className="space-y-8">
+        {/* Greeting section */}
+        <div className={`transition-all duration-500 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+          <h1 className="text-3xl font-bold tracking-tight">Welcome back, {organizerName || "Organizer"}</h1>
           <p className="text-muted-foreground">
-            Here's an overview of your volunteer events and activities
+            Manage your volunteer events and organizations from one place.
           </p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Events
-              </CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalEvents}</div>
-              <p className="text-xs text-muted-foreground">
-                Events you've created
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Volunteers
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalVolunteers}</div>
-              <p className="text-xs text-muted-foreground">
-                People helping in your events
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Upcoming Events
-              </CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.upcomingEvents}</div>
-              <p className="text-xs text-muted-foreground">
-                Events scheduled in the future
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Completed Events
-              </CardTitle>
-              <CalendarCheck className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.completedEvents}</div>
-              <p className="text-xs text-muted-foreground">
-                Successfully finished events
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Tabs Section */}
-        <Tabs defaultValue="recent-events" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="recent-events">Recent Events</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="recent-events" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Events</CardTitle>
-                <CardDescription>
-                  Your most recently created events
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="flex justify-center py-4">
-                    <p>Loading events...</p>
+        {/* Stats section */}
+        <div className={`grid gap-4 md:grid-cols-2 lg:grid-cols-4 transition-all duration-500 delay-100 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+          {stats.map((stat, i) => (
+            <Card key={i} className="border shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between space-x-4">
+                  <div className="flex flex-col">
+                    {isLoadingEvents ? (
+                      <>
+                        <Skeleton className="h-8 w-16" />
+                        <Skeleton className="h-4 w-24 mt-1" />
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-2xl font-bold">{stat.value}</span>
+                        <span className="text-sm text-muted-foreground">{stat.label}</span>
+                      </>
+                    )}
                   </div>
-                ) : recentEvents.length === 0 ? (
-                  <div className="text-center py-4">
-                    <p className="text-muted-foreground mb-4">You haven't created any events yet.</p>
-                    <Button onClick={() => navigate("/organizer/events")}>
-                      Create Your First Event
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {recentEvents.map((event) => (
-                      <div key={event.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                        <div className="space-y-1">
-                          <p className="font-medium">{event.title}</p>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
-                            <span>{event.date}</span>
-                            <span>•</span>
-                            <span>{event.location}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className={
-                            event.status === "upcoming" ? "bg-blue-50 text-blue-700 border-blue-200" :
-                            event.status === "active" ? "bg-green-50 text-green-700 border-green-200" :
-                            "bg-gray-50 text-gray-700 border-gray-200"
-                          }>
-                            {event.status}
-                          </Badge>
-                          <div className="flex items-center gap-1">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">{event.participants}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    <div className="pt-4 text-center">
-                      <Button variant="outline" onClick={() => navigate("/organizer/events")}>
-                        View All Events
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="analytics" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Event Analytics</CardTitle>
-                <CardDescription>
-                  Insights about your events and volunteer engagement
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-80">
-                <div className="flex h-full items-center justify-center">
-                  <div className="text-center">
-                    <BarChart className="mx-auto h-16 w-16 text-muted-foreground" />
-                    <p className="mt-2 text-lg font-medium">Analytics Coming Soon</p>
-                    <p className="text-sm text-muted-foreground">
-                      Detailed analytics for your events will be available here soon.
-                    </p>
+                  <div className="p-2 bg-primary/10 rounded-full">
+                    <stat.icon className="h-5 w-5 text-primary" />
                   </div>
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          ))}
+        </div>
+
+        {/* Main content */}
+        <div className="grid gap-6 md:grid-cols-6">
+          {/* My Events */}
+          <Card className={`col-span-6 border shadow-sm transition-all duration-500 delay-200 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>My Events</CardTitle>
+                <CardDescription>Manage the events you've organized</CardDescription>
+              </div>
+              <Button onClick={handleCreateEvent}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Create Event
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {isLoadingEvents ? (
+                // Loading skeleton
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex gap-4 p-4 border rounded-lg">
+                      <Skeleton className="h-16 w-16 rounded-md" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-5 w-2/3" />
+                        <Skeleton className="h-4 w-1/3" />
+                        <div className="flex gap-2">
+                          <Skeleton className="h-4 w-20" />
+                          <Skeleton className="h-4 w-24" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : myEvents.length === 0 ? (
+                <div className="text-center p-8">
+                  <div className="mx-auto bg-muted w-16 h-16 rounded-full flex items-center justify-center mb-4">
+                    <Calendar className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">No events created yet</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Create your first volunteer event to start managing volunteers
+                  </p>
+                  <Button onClick={handleCreateEvent}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Create Your First Event
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {myEvents.map((event, i) => (
+                    <div 
+                      key={event.id} 
+                      className="relative p-4 border rounded-lg flex flex-col sm:flex-row gap-4 animate-fade-in bg-card hover:bg-accent/30 transition-colors"
+                      style={{ animationDelay: `${i * 150}ms` }}
+                    >
+                      <div className="relative h-16 w-16 sm:h-20 sm:w-20 flex-shrink-0 overflow-hidden rounded-md">
+                        <img 
+                          src={event.image} 
+                          alt={event.title} 
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = "/placeholder.svg";
+                          }}
+                        />
+                      </div>
+                      
+                      <div className="flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                          <h4 className="font-semibold text-lg">{event.title}</h4>
+                          <Badge variant={event.status === "upcoming" ? "default" : "secondary"} className="w-fit mt-1 sm:mt-0">
+                            {event.status === "upcoming" ? "Upcoming" : "Completed"}
+                          </Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 mt-2">
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <Calendar className="mr-1 h-4 w-4" />
+                            <span>{event.date}</span>
+                          </div>
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <MapPin className="mr-1 h-4 w-4" />
+                            <span>{event.location}</span>
+                          </div>
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <Users className="mr-1 h-4 w-4" />
+                            <span>{event.participants || 0} volunteers</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="sm:self-center flex gap-2 mt-2 sm:mt-0">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleManageEvent(event.id)}
+                        >
+                          <FileEdit className="h-4 w-4 mr-1" />
+                          Manage
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </DashboardLayout>
   );

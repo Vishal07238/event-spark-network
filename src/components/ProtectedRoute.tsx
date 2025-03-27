@@ -22,6 +22,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { toast } = useToast();
   const hasRequiredRole = useHasRole(allowedRoles);
 
+  // Add more detailed debugging logs to help troubleshoot
+  console.log("Protected route check:", {
+    isAuthenticated: state.isAuthenticated,
+    isLoading: state.isLoading,
+    userRole: state.user?.role,
+    allowedRoles,
+    hasRequiredRole,
+    path: location.pathname
+  });
+
   useEffect(() => {
     // Only show toast if authentication has been checked (not loading)
     if (!state.isLoading) {
@@ -61,6 +71,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Authenticated but doesn't have the required role - redirect to home
   if (!hasRequiredRole) {
+    console.log("Access denied for path:", location.pathname);
     console.log("User role:", state.user?.role, "Required roles:", allowedRoles);
     return <Navigate to="/" replace />;
   }
