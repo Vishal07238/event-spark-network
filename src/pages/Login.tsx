@@ -1,180 +1,25 @@
-import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Users, Building2 } from "lucide-react";
 import AuthLayout from "@/layouts/AuthLayout";
-import { login } from "@/utils/auth";
-import { useAuth } from "@/contexts/AuthContext";
+import { LoginProvider, useLogin } from "@/components/auth/LoginContext";
+import VolunteerLoginForm from "@/components/auth/VolunteerLoginForm";
+import OrganizerLoginForm from "@/components/auth/OrganizerLoginForm";
+import AdminLoginForm from "@/components/auth/AdminLoginForm";
+import LoginCredentialHelp from "@/components/auth/LoginCredentialHelp";
 
-// Define volunteer form schema
-const volunteerLoginSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address." }),
-  mobile: z.string().min(10, { message: "Please enter a valid mobile number." }),
-  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  rememberMe: z.boolean().default(false),
-});
-
-// Define organizer form schema
-const organizerLoginSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
-  rememberMe: z.boolean().default(false),
-});
-
-type VolunteerLoginFormValues = z.infer<typeof volunteerLoginSchema>;
-type OrganizerLoginFormValues = z.infer<typeof organizerLoginSchema>;
-
+// Main login container that provides the LoginContext
 export default function Login() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { toast } = useToast();
-  const { login: authLogin } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>("volunteer");
+  return (
+    <LoginProvider>
+      <LoginContent />
+    </LoginProvider>
+  );
+}
 
-  // Get the "from" path from location state or default to dashboard
-  const from = location.state?.from?.pathname || "/";
-
-  // Initialize volunteer form
-  const volunteerForm = useForm<VolunteerLoginFormValues>({
-    resolver: zodResolver(volunteerLoginSchema),
-    defaultValues: {
-      email: "volunteer@example.com",
-      mobile: "1234567890",
-      name: "John Doe",
-      rememberMe: false,
-    },
-  });
-
-  // Initialize organizer form
-  const organizerForm = useForm<OrganizerLoginFormValues>({
-    resolver: zodResolver(organizerLoginSchema),
-    defaultValues: {
-      email: "organizer@example.com",
-      password: "password123",
-      rememberMe: false,
-    },
-  });
-
-  // Initialize admin form
-  const adminForm = useForm<OrganizerLoginFormValues>({
-    resolver: zodResolver(organizerLoginSchema),
-    defaultValues: {
-      email: "admin@example.com",
-      password: "admin123",
-      rememberMe: false,
-    },
-  });
-
-  // Volunteer form submission handler
-  const onVolunteerSubmit = async (values: VolunteerLoginFormValues) => {
-    try {
-      setIsLoading(true);
-      
-      const result = login(values.email, undefined, values.name, values.mobile);
-      
-      if (!result) {
-        toast({
-          variant: "destructive",
-          title: "Login failed",
-          description: "Invalid credentials. Please check your details and try again.",
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // Set auth state
-      authLogin(result.user, result.token);
-      
-      // Redirect based on user role
-      navigate("/volunteer/dashboard");
-      setIsLoading(false);
-    } catch (error) {
-      console.error("Login error:", error);
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: "An error occurred during login. Please try again.",
-      });
-      setIsLoading(false);
-    }
-  };
-
-  // Organizer form submission handler
-  const onOrganizerSubmit = async (values: OrganizerLoginFormValues) => {
-    try {
-      setIsLoading(true);
-      
-      const result = login(values.email, values.password);
-      
-      if (!result) {
-        toast({
-          variant: "destructive",
-          title: "Login failed",
-          description: "Invalid credentials. Please check your email and password.",
-        });
-        setIsLoading(false);
-        return;
-      }
-      
-      // Set auth state
-      authLogin(result.user, result.token);
-      
-      // Redirect based on user role
-      navigate("/organizer/dashboard");
-      setIsLoading(false);
-    } catch (error) {
-      console.error("Login error:", error);
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: "An error occurred during login. Please try again.",
-      });
-      setIsLoading(false);
-    }
-  };
-
-  // Admin form submission handler
-  const onAdminSubmit = async (values: OrganizerLoginFormValues) => {
-    try {
-      setIsLoading(true);
-      
-      const result = login(values.email, values.password);
-      
-      if (!result) {
-        toast({
-          variant: "destructive",
-          title: "Login failed",
-          description: "Invalid credentials. Please check your email and password.",
-        });
-        setIsLoading(false);
-        return;
-      }
-      
-      // Set auth state
-      authLogin(result.user, result.token);
-      
-      // Redirect based on user role
-      navigate("/admin/dashboard");
-      setIsLoading(false);
-    } catch (error) {
-      console.error("Login error:", error);
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: "An error occurred during login. Please try again.",
-      });
-      setIsLoading(false);
-    }
-  };
+// Separate component to use the login context hooks
+function LoginContent() {
+  const { activeTab, setActiveTab } = useLogin();
 
   return (
     <AuthLayout 
@@ -200,273 +45,21 @@ export default function Login() {
         
         {/* Volunteer Login Form */}
         <TabsContent value="volunteer" className="animate-fade-in">
-          <Form {...volunteerForm}>
-            <form onSubmit={volunteerForm.handleSubmit(onVolunteerSubmit)} className="space-y-4">
-              <FormField
-                control={volunteerForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="John Doe"
-                        {...field}
-                        className="h-11"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={volunteerForm.control}
-                name="mobile"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mobile Number</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="tel"
-                        placeholder="1234567890"
-                        {...field}
-                        className="h-11"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={volunteerForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="you@example.com"
-                        {...field}
-                        className="h-11"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={volunteerForm.control}
-                name="rememberMe"
-                render={({ field }) => (
-                  <FormItem className="flex items-center space-x-2 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormLabel className="text-sm font-normal">Remember me</FormLabel>
-                  </FormItem>
-                )}
-              />
-
-              <Button type="submit" className="w-full h-11" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign In as Volunteer"}
-              </Button>
-            </form>
-          </Form>
+          <VolunteerLoginForm />
         </TabsContent>
         
         {/* Organizer Login Form */}
         <TabsContent value="organizer" className="animate-fade-in">
-          <Form {...organizerForm}>
-            <form onSubmit={organizerForm.handleSubmit(onOrganizerSubmit)} className="space-y-4">
-              <FormField
-                control={organizerForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="your-org@example.com"
-                        {...field}
-                        className="h-11"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={organizerForm.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center justify-between">
-                      <FormLabel>Password</FormLabel>
-                      <a
-                        href="#"
-                        className="text-xs text-primary hover:underline"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          navigate("/forgot-password");
-                        }}
-                      >
-                        Forgot password?
-                      </a>
-                    </div>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="••••••••"
-                        {...field}
-                        className="h-11"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={organizerForm.control}
-                name="rememberMe"
-                render={({ field }) => (
-                  <FormItem className="flex items-center space-x-2 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormLabel className="text-sm font-normal">Remember me</FormLabel>
-                  </FormItem>
-                )}
-              />
-
-              <Button type="submit" className="w-full h-11" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign In as Organizer"}
-              </Button>
-            </form>
-          </Form>
+          <OrganizerLoginForm />
         </TabsContent>
         
         {/* Admin Login Form */}
         <TabsContent value="admin" className="animate-fade-in">
-          <Form {...adminForm}>
-            <form onSubmit={adminForm.handleSubmit(onAdminSubmit)} className="space-y-4">
-              <FormField
-                control={adminForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="admin@volunteerhub.com"
-                        {...field}
-                        className="h-11"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={adminForm.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center justify-between">
-                      <FormLabel>Password</FormLabel>
-                      <a
-                        href="#"
-                        className="text-xs text-primary hover:underline"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          navigate("/forgot-password");
-                        }}
-                      >
-                        Forgot password?
-                      </a>
-                    </div>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="••••••••"
-                        {...field}
-                        className="h-11"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={adminForm.control}
-                name="rememberMe"
-                render={({ field }) => (
-                  <FormItem className="flex items-center space-x-2 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormLabel className="text-sm font-normal">Remember me</FormLabel>
-                  </FormItem>
-                )}
-              />
-
-              <Button type="submit" className="w-full h-11" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign In as Admin"}
-              </Button>
-            </form>
-          </Form>
+          <AdminLoginForm />
         </TabsContent>
       </Tabs>
       
-      <div className="mt-6 text-center text-sm">
-        {activeTab === "volunteer" && (
-          <div className="text-center text-sm text-muted-foreground">
-            <span>For demo, use:</span>
-            <div className="flex flex-col sm:flex-row text-xs gap-2 justify-center mt-1">
-              <span className="bg-muted px-2 py-1 rounded">volunteer@example.com</span>
-            </div>
-            <span className="block mt-1">Name: John Doe, Mobile: 1234567890</span>
-          </div>
-        )}
-        
-        {activeTab === "organizer" && (
-          <div className="text-center text-sm text-muted-foreground">
-            <span>For demo, use:</span>
-            <div className="flex flex-col sm:flex-row text-xs gap-2 justify-center mt-1">
-              <span className="bg-muted px-2 py-1 rounded">organizer@example.com</span>
-            </div>
-            <span className="block mt-1">Password: password123</span>
-          </div>
-        )}
-        
-        {activeTab === "admin" && (
-          <div className="text-center text-sm text-muted-foreground">
-            <span>For demo, use:</span>
-            <div className="flex flex-col sm:flex-row text-xs gap-2 justify-center mt-1">
-              <span className="bg-muted px-2 py-1 rounded">admin@example.com</span>
-            </div>
-            <span className="block mt-1">Password: admin123</span>
-          </div>
-        )}
-      </div>
+      <LoginCredentialHelp />
     </AuthLayout>
   );
 }
