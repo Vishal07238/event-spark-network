@@ -7,8 +7,10 @@ import EventsPagination from "@/components/events/EventsPagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRealTimeEvents } from "@/hooks/useRealTimeEvents";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Wifi, WifiOff, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { WebSocketStatus } from "@/hooks/websocket/types";
 
 export default function Events() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -92,6 +94,39 @@ export default function Events() {
     }
   };
   
+  // Get connection status details and appropriate icons
+  const getConnectionStatusDetails = (status: WebSocketStatus) => {
+    switch(status) {
+      case 'connecting':
+        return {
+          icon: <RefreshCw className="h-4 w-4 animate-spin text-amber-500" />,
+          text: "Connecting...",
+          color: "text-amber-500"
+        };
+      case 'open':
+        return {
+          icon: <Wifi className="h-4 w-4 text-green-500" />,
+          text: "Connected",
+          color: "text-green-500"
+        };
+      case 'error':
+        return {
+          icon: <AlertTriangle className="h-4 w-4 text-red-500" />,
+          text: "Connection Error",
+          color: "text-red-500"
+        };
+      case 'closed':
+      default:
+        return {
+          icon: <WifiOff className="h-4 w-4 text-gray-500" />,
+          text: "Disconnected",
+          color: "text-gray-500"
+        };
+    }
+  };
+  
+  const connectionStatus = getConnectionStatusDetails(realtimeStatus);
+  
   return (
     <div className="min-h-screen flex flex-col">
       <EventsHeader 
@@ -111,6 +146,35 @@ export default function Events() {
           />
         </div>
         
+        {/* Connection status indicator */}
+        {isRealtimeEnabled && (
+          <div className="mb-4">
+            <Alert className={`border ${realtimeStatus === 'open' ? 'border-green-200 bg-green-50' : 
+                                        realtimeStatus === 'connecting' ? 'border-amber-200 bg-amber-50' : 
+                                        realtimeStatus === 'error' ? 'border-red-200 bg-red-50' : 
+                                        'border-gray-200 bg-gray-50'}`}>
+              <div className="flex items-center gap-2">
+                {connectionStatus.icon}
+                <AlertDescription className={`font-medium ${connectionStatus.color}`}>
+                  Real-time updates: {connectionStatus.text}
+                </AlertDescription>
+                
+                {realtimeStatus !== 'open' && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={forceReconnect}
+                    aria-label="Reconnect to real-time updates"
+                    className="ml-auto"
+                  >
+                    Reconnect
+                  </Button>
+                )}
+              </div>
+            </Alert>
+          </div>
+        )}
+        
         <div className="flex justify-between items-center mb-4">
           <div>
             <h2 className="text-xl font-semibold">
@@ -129,6 +193,7 @@ export default function Events() {
             onClick={handleManualRefresh}
             disabled={isRefreshing || isLoading}
             className="flex items-center gap-1"
+            aria-label="Refresh events list"
           >
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             {isRefreshing ? 'Refreshing...' : 'Refresh'}

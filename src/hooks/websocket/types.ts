@@ -11,6 +11,10 @@ export interface UseWebSocketOptions {
   reconnectInterval?: number;
   autoConnect?: boolean;
   heartbeatInterval?: number;
+  // New options for performance optimization
+  maxBufferSize?: number;        // Maximum messages to buffer before forcing flush
+  flushInterval?: number;        // Time in ms to wait before flushing messages
+  connectionPoolSize?: number;   // Max number of pooled connections
 }
 
 export interface UseWebSocketReturn {
