@@ -1,4 +1,3 @@
-
 import { User, UserRole, MOCK_USERS } from '@/types/auth';
 
 // This would be an environment variable in a real app
@@ -6,6 +5,14 @@ const JWT_SECRET = 'your-secret-key-would-be-in-env-file';
 const USERS_STORAGE_KEY = 'volunteer_hub_users';
 const EVENTS_STORAGE_KEY = 'volunteer_hub_events';
 const TASKS_STORAGE_KEY = 'volunteer_hub_tasks';
+const MESSAGES_STORAGE_KEY = 'volunteer_hub_messages';
+const REPORTS_STORAGE_KEY = 'volunteer_hub_reports';
+
+// List of authorized organizer emails
+const AUTHORIZED_ORGANIZER_EMAILS = [
+  'organizer@example.com',
+  // Add other authorized organizer emails here
+];
 
 // Simple browser-compatible JWT implementation for demo purposes
 const createToken = (payload: any): string => {
@@ -61,6 +68,12 @@ export const registerUser = (userData: Omit<User, 'id' | 'role' | 'createdAt'> &
     return null;
   }
   
+  // If registering as an organizer, check if email is authorized
+  if (userData.role === 'organizer' && !AUTHORIZED_ORGANIZER_EMAILS.includes(userData.email)) {
+    console.log('Unauthorized organizer email:', userData.email);
+    return null;
+  }
+  
   // Create a new user
   const newUser = {
     id: `user-${Date.now()}`,
@@ -107,9 +120,20 @@ export const login = (email: string, password?: string, name?: string, mobile?: 
       return true;
     }
     
-    // For organizer/admin login (email + password)
-    if ((u.role === 'organizer' || u.role === 'admin') && email === u.email && password === u.password) {
-      console.log('Organizer/Admin match found');
+    // For organizer login (email + password)
+    if (u.role === 'organizer' && email === u.email && password === u.password) {
+      // Check if this is an authorized organizer email
+      if (!AUTHORIZED_ORGANIZER_EMAILS.includes(email)) {
+        console.log('Unauthorized organizer email:', email);
+        return false;
+      }
+      console.log('Organizer match found');
+      return true;
+    }
+    
+    // For admin login (email + password)
+    if (u.role === 'admin' && email === u.email && password === u.password) {
+      console.log('Admin match found');
       return true;
     }
     
@@ -382,4 +406,105 @@ export const completeTask = (taskId: string, userId: string) => {
   
   localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks));
   return tasks[taskIndex];
+};
+
+// MESSAGING SYSTEM
+// Initialize messages in localStorage if needed
+const initializeMessages = () => {
+  if (!localStorage.getItem(MESSAGES_STORAGE_KEY)) {
+    localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify([]));
+  }
+};
+
+// Get all messages
+export const getAllMessages = () => {
+  initializeMessages();
+  return JSON.parse(localStorage.getItem(MESSAGES_STORAGE_KEY) || '[]');
+};
+
+// Get messages for a specific user
+export const getUserMessages = (userId: string) => {
+  const messages = getAllMessages();
+  return messages.filter((message: any) => message.senderId === userId || message.recipientId === userId);
+};
+
+// Create a new message
+export const sendMessage = (messageData: any) => {
+  const messages = getAllMessages();
+  const newMessage = {
+    ...messageData,
+    id: `msg-${Date.now()}`,
+    timestamp: new Date().toISOString(),
+    isRead: false
+  };
+  
+  messages.push(newMessage);
+  localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(messages));
+  return newMessage;
+};
+
+// Mark message as read
+export const markMessageAsRead = (messageId: string) => {
+  const messages = getAllMessages();
+  const messageIndex = messages.findIndex((m: any) => m.id === messageId);
+  
+  if (messageIndex === -1) return null;
+  
+  messages[messageIndex].isRead = true;
+  localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(messages));
+  return messages[messageIndex];
+};
+
+// REPORTS SYSTEM
+// Initialize reports in localStorage if needed
+const initializeReports = () => {
+  if (!localStorage.getItem(REPORTS_STORAGE_KEY)) {
+    localStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify([]));
+  }
+};
+
+// Generate and save a report
+export const generateReport = (reportType: string, organizerId: string, filters?: any) => {
+  initializeReports();
+  const reports = JSON.parse(localStorage.getItem(REPORTS_STORAGE_KEY) || '[]');
+  
+  // Get data based on report type
+  let reportData;
+  switch (reportType) {
+    case 'events':
+      const events = getAllEvents().filter((e: any) => e.organizerId === organizerId);
+      reportData = { events };
+      break;
+    case 'volunteers':
+      const users = getUsers().filter((u: any) => u.role === 'volunteer');
+      reportData = { volunteers: users };
+      break;
+    case 'tasks':
+      const tasks = getAllTasks().filter((t: any) => t.createdBy === organizerId);
+      reportData = { tasks };
+      break;
+    default:
+      reportData = {};
+  }
+  
+  // Create report object
+  const newReport = {
+    id: `report-${Date.now()}`,
+    type: reportType,
+    createdBy: organizerId,
+    timestamp: new Date().toISOString(),
+    data: reportData,
+    filters
+  };
+  
+  reports.push(newReport);
+  localStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(reports));
+  return newReport;
+};
+
+// Get all reports for an organizer
+export const getOrganizerReports = (organizerId: string) => {
+  initializeReports();
+  const reports = JSON.parse(localStorage.getItem(REPORTS_STORAGE_KEY) || '[]');
+  return reports.filter((r: any) => r.createdBy === organizerId);
 };
