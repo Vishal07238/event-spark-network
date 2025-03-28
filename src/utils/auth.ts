@@ -7,6 +7,7 @@ const EVENTS_STORAGE_KEY = 'volunteer_hub_events';
 const TASKS_STORAGE_KEY = 'volunteer_hub_tasks';
 const MESSAGES_STORAGE_KEY = 'volunteer_hub_messages';
 const REPORTS_STORAGE_KEY = 'volunteer_hub_reports';
+const VOLUNTEERS_STORAGE_KEY = 'volunteer_hub_volunteers';
 
 // List of authorized organizer emails
 const AUTHORIZED_ORGANIZER_EMAILS = [
@@ -59,7 +60,7 @@ const saveUsers = (users: Array<any>): void => {
 };
 
 // Register a new user
-export const registerUser = (userData: Omit<User, 'id' | 'role' | 'createdAt'> & { password: string }): { user: User; token: string } | null => {
+export const registerUser = (userData: Omit<User, 'id' | 'role' | 'createdAt'> & { password: string; role?: UserRole }): { user: User; token: string } | null => {
   const users = getUsers();
   
   // Check if user with this email already exists
@@ -81,7 +82,7 @@ export const registerUser = (userData: Omit<User, 'id' | 'role' | 'createdAt'> &
     email: userData.email,
     mobile: userData.mobile,
     password: userData.password, // In a real app, this would be hashed
-    role: 'volunteer' as UserRole, // Default role is volunteer
+    role: userData.role || 'volunteer' as UserRole, // Default role is volunteer
     createdAt: new Date().toISOString(),
   };
   
@@ -507,4 +508,54 @@ export const getOrganizerReports = (organizerId: string) => {
   initializeReports();
   const reports = JSON.parse(localStorage.getItem(REPORTS_STORAGE_KEY) || '[]');
   return reports.filter((r: any) => r.createdBy === organizerId);
+};
+
+// VOLUNTEERS MANAGEMENT
+// Initialize volunteers in localStorage if needed
+const initializeVolunteers = () => {
+  if (!localStorage.getItem(VOLUNTEERS_STORAGE_KEY)) {
+    localStorage.setItem(VOLUNTEERS_STORAGE_KEY, JSON.stringify([]));
+  }
+};
+
+// Get all volunteers
+export const getAllVolunteers = () => {
+  initializeVolunteers();
+  const users = getUsers();
+  return users.filter((u: any) => u.role === 'volunteer');
+};
+
+// Get volunteer by ID
+export const getVolunteerById = (volunteerId: string) => {
+  const volunteers = getAllVolunteers();
+  return volunteers.find((v: any) => v.id === volunteerId);
+};
+
+// Add volunteer to event
+export const addVolunteerToEvent = (eventId: number, volunteerId: string) => {
+  const events = getAllEvents();
+  const eventIndex = events.findIndex((e: any) => e.id === eventId);
+  
+  if (eventIndex === -1) return null;
+  
+  if (!events[eventIndex].volunteers) {
+    events[eventIndex].volunteers = [];
+  }
+  
+  if (!events[eventIndex].volunteers.includes(volunteerId)) {
+    events[eventIndex].volunteers.push(volunteerId);
+  }
+  
+  localStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(events));
+  return events[eventIndex];
+};
+
+// Get volunteers for a specific event
+export const getVolunteersForEvent = (eventId: number) => {
+  const events = getAllEvents();
+  const event = events.find((e: any) => e.id === eventId);
+  
+  if (!event || !event.volunteers) return [];
+  
+  return getAllVolunteers().filter((v: any) => event.volunteers.includes(v.id));
 };
