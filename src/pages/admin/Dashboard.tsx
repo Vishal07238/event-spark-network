@@ -2,36 +2,34 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { BarChart, PieChart, Users, Calendar, ClipboardList } from "lucide-react";
+import { BarChart, PieChart, Users, Calendar, ClipboardList, Loader, RefreshCw, WifiOff } from "lucide-react";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
-
-interface StatsCardProps {
-  title: string;
-  value: string | number;
-  description: string;
-  icon: React.ReactNode;
-}
-
-const StatsCard = ({ title, value, description, icon }: StatsCardProps) => (
-  <Card>
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium">{title}</CardTitle>
-      <div className="h-4 w-4 text-muted-foreground">{icon}</div>
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold">{value}</div>
-      <p className="text-xs text-muted-foreground">{description}</p>
-    </CardContent>
-  </Card>
-);
+import { useRealTimeEvents } from "@/hooks/useRealTimeEvents";
+import { motion } from "framer-motion";
 
 export default function AdminDashboard() {
   const { state } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
+  
+  // Use our real-time hook for events data
+  const {
+    events,
+    isLoading,
+    error,
+    realtimeStatus,
+    isRealtimeEnabled,
+    toggleRealtime,
+    forceReconnect,
+    lastUpdate,
+  } = useRealTimeEvents({ 
+    enabled: true
+  });
   
   // Simulated data for admin dashboard
   const users = [
@@ -47,51 +45,128 @@ export default function AdminDashboard() {
     { id: 3, name: "Animal Rescue", events: 15, volunteers: 53, status: "active" },
   ];
   
-  const recentEvents = [
-    { id: 1, name: "Beach Cleanup", date: "2023-08-15", participants: 42, organization: "Green Earth Foundation" },
-    { id: 2, name: "Food Drive", date: "2023-08-10", participants: 28, organization: "City Helpers" },
-    { id: 3, name: "Dog Walking Day", date: "2023-08-05", participants: 15, organization: "Animal Rescue" },
-  ];
+  // Use real events data for recent events
+  const recentEvents = events.slice(0, 5).map(event => ({
+    id: event.id,
+    name: event.title,
+    date: event.date,
+    participants: event.participants,
+    organization: event.organization
+  }));
 
-  useEffect(() => {
-    // Welcome message
-    toast({
-      title: "Welcome to Admin Dashboard",
-      description: "You have 3 new user registrations today.",
-    });
-  }, []);
+  // Format timestamp for display
+  const formatLastUpdate = () => {
+    if (!lastUpdate) return "Never";
+    
+    const now = new Date();
+    const diff = now.getTime() - lastUpdate.getTime();
+    
+    if (diff < 60000) return "Just now";
+    if (diff < 3600000) return `${Math.floor(diff / 60000)} minutes ago`;
+    return lastUpdate.toLocaleTimeString();
+  };
 
   return (
     <DashboardLayout userType="admin">
       <div className="flex flex-col gap-5">
-        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back, {state.user?.name || "Admin"}!</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+            <p className="text-muted-foreground">Welcome back, {state.user?.name || "Admin"}!</p>
+          </div>
+          
+          {/* Real-time connection status indicator */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center">
+              <div className="text-sm text-muted-foreground mr-2">
+                Last update: {formatLastUpdate()}
+              </div>
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={() => forceReconnect()}
+                aria-label="Refresh data"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
+            <Button 
+              variant={isRealtimeEnabled ? "default" : "outline"}
+              size="sm"
+              onClick={toggleRealtime}
+              className="relative"
+            >
+              {isRealtimeEnabled ? (
+                <>
+                  <span className="mr-2">Live Updates</span>
+                  {realtimeStatus === 'connecting' ? (
+                    <Loader className="h-4 w-4 animate-spin" />
+                  ) : realtimeStatus === 'open' ? (
+                    <motion.div
+                      className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full"
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ repeat: Infinity, duration: 2 }}
+                    />
+                  ) : (
+                    <WifiOff className="h-4 w-4" />
+                  )}
+                </>
+              ) : (
+                <>
+                  <WifiOff className="h-4 w-4 mr-2" />
+                  <span>Enable Live</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
         
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatsCard 
-            title="Total Users" 
-            value="1,234" 
-            description="+12% from last month" 
-            icon={<Users className="h-4 w-4" />} 
-          />
-          <StatsCard 
-            title="Organizations" 
-            value="56" 
-            description="+3 new this month" 
-            icon={<ClipboardList className="h-4 w-4" />} 
-          />
-          <StatsCard 
-            title="Events" 
-            value="278" 
-            description="32 upcoming this week" 
-            icon={<Calendar className="h-4 w-4" />} 
-          />
-          <StatsCard 
-            title="Volunteer Hours" 
-            value="12,567" 
-            description="+18% from previous quarter" 
-            icon={<BarChart className="h-4 w-4" />} 
-          />
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">1,234</div>
+              <p className="text-xs text-muted-foreground">+12% from last month</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Organizations</CardTitle>
+              <ClipboardList className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">56</div>
+              <p className="text-xs text-muted-foreground">+3 new this month</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Events</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{isLoading ? "..." : events.length}</div>
+              <p className="text-xs text-muted-foreground">
+                {events.filter(e => new Date(e.date) > new Date()).length} upcoming this week
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Volunteer Hours</CardTitle>
+              <BarChart className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">12,567</div>
+              <p className="text-xs text-muted-foreground">+18% from previous quarter</p>
+            </CardContent>
+          </Card>
         </div>
         
         <Tabs defaultValue="overview" className="space-y-4" onValueChange={setActiveTab}>
@@ -110,30 +185,40 @@ export default function AdminDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Event Name</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Participants</TableHead>
-                      <TableHead>Organization</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentEvents.map((event) => (
-                      <TableRow key={event.id}>
-                        <TableCell className="font-medium">{event.name}</TableCell>
-                        <TableCell>{event.date}</TableCell>
-                        <TableCell>{event.participants}</TableCell>
-                        <TableCell>{event.organization}</TableCell>
+                {isLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : recentEvents.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No events found.
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Event Name</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Participants</TableHead>
+                        <TableHead>Organization</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {recentEvents.map((event) => (
+                        <TableRow key={event.id}>
+                          <TableCell className="font-medium">{event.name}</TableCell>
+                          <TableCell>{new Date(event.date).toLocaleDateString()}</TableCell>
+                          <TableCell>{event.participants}</TableCell>
+                          <TableCell>{event.organization}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
               <CardFooter>
                 <p className="text-sm text-muted-foreground">
-                  Showing {recentEvents.length} of 278 total events.
+                  {isLoading ? "Loading..." : `Showing ${recentEvents.length} of ${events.length} total events.`}
                 </p>
               </CardFooter>
             </Card>
@@ -164,13 +249,13 @@ export default function AdminDashboard() {
                         <TableCell>{user.email}</TableCell>
                         <TableCell className="capitalize">{user.role}</TableCell>
                         <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            user.status === 'active' ? 'bg-green-100 text-green-800' : 
-                            user.status === 'inactive' ? 'bg-gray-100 text-gray-800' : 
-                            'bg-yellow-100 text-yellow-800'
+                          <Badge className={`${
+                            user.status === 'active' ? 'bg-green-500' : 
+                            user.status === 'inactive' ? 'bg-gray-500' : 
+                            'bg-amber-500'
                           }`}>
                             {user.status}
-                          </span>
+                          </Badge>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -210,9 +295,9 @@ export default function AdminDashboard() {
                         <TableCell>{org.events}</TableCell>
                         <TableCell>{org.volunteers}</TableCell>
                         <TableCell>
-                          <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                          <Badge className="bg-green-500">
                             {org.status}
-                          </span>
+                          </Badge>
                         </TableCell>
                       </TableRow>
                     ))}
