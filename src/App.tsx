@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -25,12 +24,10 @@ import VolunteerProfile from "./pages/volunteer/Profile";
 
 // Organizer pages
 import OrganizerEvents from "./pages/organizer/Events";
+import OrganizerDashboard from "./pages/organizer/Dashboard";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/Dashboard";
-
-// Placeholder components for new routes
-const OrganizerDashboard = () => <div>Organizer Dashboard (Coming Soon)</div>;
 
 // Animation wrapper for route transitions
 const AnimationWrapper = ({ children }: { children: React.ReactNode }) => {
