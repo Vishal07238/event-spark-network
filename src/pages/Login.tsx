@@ -1,65 +1,66 @@
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Users, Building2 } from "lucide-react";
+import { LoginProvider } from "@/components/auth/LoginContext";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AuthLayout from "@/layouts/AuthLayout";
-import { LoginProvider, useLogin } from "@/components/auth/LoginContext";
 import VolunteerLoginForm from "@/components/auth/VolunteerLoginForm";
 import OrganizerLoginForm from "@/components/auth/OrganizerLoginForm";
 import AdminLoginForm from "@/components/auth/AdminLoginForm";
 import LoginCredentialHelp from "@/components/auth/LoginCredentialHelp";
+import { Button } from "@/components/ui/button";
+import { UserPlus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useLogin } from "@/components/auth/LoginContext";
 
-// Main login container that provides the LoginContext
-export default function Login() {
+export function LoginTabs() {
+  const { activeTab, setActiveTab } = useLogin();
+  const navigate = useNavigate();
+
   return (
-    <LoginProvider>
-      <LoginContent />
-    </LoginProvider>
+    <div className="w-full">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="volunteer">Volunteer</TabsTrigger>
+          <TabsTrigger value="organizer">Organizer</TabsTrigger>
+          <TabsTrigger value="admin">Admin</TabsTrigger>
+        </TabsList>
+        
+        <div className="mt-6">
+          {activeTab === "volunteer" && <VolunteerLoginForm />}
+          {activeTab === "organizer" && (
+            <div>
+              <OrganizerLoginForm />
+              <div className="mt-4 flex justify-center">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => navigate("/organizer/register")}
+                  className="flex items-center gap-2 text-primary"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Register New Organizer
+                </Button>
+              </div>
+            </div>
+          )}
+          {activeTab === "admin" && <AdminLoginForm />}
+          
+          <LoginCredentialHelp role={activeTab as "volunteer" | "organizer" | "admin"} />
+        </div>
+      </Tabs>
+    </div>
   );
 }
 
-// Separate component to use the login context hooks
-function LoginContent() {
-  const { activeTab, setActiveTab } = useLogin();
-
+export default function Login() {
   return (
-    <AuthLayout 
-      title="Welcome back" 
-      subtitle="Enter your credentials to access your account"
-      type="login"
-    >
-      <Tabs defaultValue="volunteer" className="w-full" onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-3 mb-6">
-          <TabsTrigger value="volunteer">
-            <User className="mr-2 h-4 w-4" />
-            Volunteer
-          </TabsTrigger>
-          <TabsTrigger value="organizer">
-            <Building2 className="mr-2 h-4 w-4" />
-            Organizer
-          </TabsTrigger>
-          <TabsTrigger value="admin">
-            <Users className="mr-2 h-4 w-4" />
-            Admin
-          </TabsTrigger>
-        </TabsList>
-        
-        {/* Volunteer Login Form */}
-        <TabsContent value="volunteer" className="animate-fade-in">
-          <VolunteerLoginForm />
-        </TabsContent>
-        
-        {/* Organizer Login Form */}
-        <TabsContent value="organizer" className="animate-fade-in">
-          <OrganizerLoginForm />
-        </TabsContent>
-        
-        {/* Admin Login Form */}
-        <TabsContent value="admin" className="animate-fade-in">
-          <AdminLoginForm />
-        </TabsContent>
-      </Tabs>
-      
-      <LoginCredentialHelp />
-    </AuthLayout>
+    <LoginProvider>
+      <AuthLayout 
+        title="Welcome back" 
+        subtitle="Sign in to access your account" 
+        type="login"
+      >
+        <LoginTabs />
+      </AuthLayout>
+    </LoginProvider>
   );
 }

@@ -69,12 +69,6 @@ export const registerUser = (userData: Omit<User, 'id' | 'role' | 'createdAt'> &
     return null;
   }
   
-  // If registering as an organizer, check if email is authorized
-  if (userData.role === 'organizer' && !AUTHORIZED_ORGANIZER_EMAILS.includes(userData.email)) {
-    console.log('Unauthorized organizer email:', userData.email);
-    return null;
-  }
-  
   // Create a new user
   const newUser = {
     id: `user-${Date.now()}`,
