@@ -3,7 +3,6 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { AuthState, User, UserRole } from '@/types/auth';
 import { verifyToken, getUserFromToken } from '@/utils/auth';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate, useLocation } from 'react-router-dom';
 
 // Define action types
 type AuthAction = 
@@ -53,30 +52,16 @@ type AuthContextType = {
   state: AuthState;
   login: (user: User, token: string) => void;
   logout: () => void;
-  redirectToRoleBasedDashboard: (role: UserRole) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Provider component
+// Provider component - without navigation dependencies
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
   const { toast } = useToast();
-  const navigate = useNavigate();
-  const location = useLocation();
 
-  // Helper function to redirect users based on their role
-  const redirectToRoleBasedDashboard = (role: UserRole) => {
-    const dashboardPaths = {
-      volunteer: "/volunteer/dashboard",
-      organizer: "/organizer/dashboard",
-      admin: "/admin/dashboard"
-    };
-    
-    navigate(dashboardPaths[role]);
-  };
-
-  // Check for token on app load and on location change
+  // Check for token on app load
   useEffect(() => {
     const checkAuth = async () => {
       dispatch({ type: 'SET_LOADING', payload: true });
@@ -92,12 +77,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               payload: { user, token },
             });
             console.log('User authenticated from token:', user);
-            
-            // If user is on login or register page but already authenticated, redirect them
-            if (['/login', '/register', '/organizer/register', '/'].includes(location.pathname)) {
-              console.log('User already logged in, redirecting to dashboard');
-              redirectToRoleBasedDashboard(user.role);
-            }
           } else {
             // Token is invalid
             console.log('Invalid token, logging out');
@@ -115,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     checkAuth();
-  }, [location.pathname]);
+  }, []);
 
   const login = (user: User, token: string) => {
     console.log('Login successful:', user);
@@ -133,9 +112,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       title: "Login successful",
       description: `Welcome back, ${user.name}!`,
     });
-    
-    // Redirect to the appropriate dashboard based on user role
-    redirectToRoleBasedDashboard(user.role);
   };
 
   const logout = () => {
@@ -151,13 +127,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       title: "Logged out",
       description: "You have been successfully logged out.",
     });
-    
-    // Redirect to login page
-    navigate('/login');
   };
 
   return (
-    <AuthContext.Provider value={{ state, login, logout, redirectToRoleBasedDashboard }}>
+    <AuthContext.Provider value={{ state, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,12 +1,12 @@
-
 import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { UserRole } from "@/types/auth";
 
 // Pages
 import Index from "./pages/Index";
@@ -32,6 +32,34 @@ import OrganizerVolunteers from "./pages/organizer/Volunteers";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/Dashboard";
+
+// Auth-aware wrapper that handles redirects
+const AuthNavigationHandler = ({ children }: { children: React.ReactNode }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { state } = useAuth();
+  
+  const redirectToRoleBasedDashboard = (role: UserRole) => {
+    const dashboardPaths = {
+      volunteer: "/volunteer/dashboard",
+      organizer: "/organizer/dashboard",
+      admin: "/admin/dashboard"
+    };
+    
+    navigate(dashboardPaths[role]);
+  };
+  
+  useEffect(() => {
+    if (state.isAuthenticated && state.user) {
+      if (['/login', '/register', '/organizer/register', '/'].includes(location.pathname)) {
+        console.log('User already logged in, redirecting to dashboard');
+        redirectToRoleBasedDashboard(state.user.role);
+      }
+    }
+  }, [state.isAuthenticated, state.user, location.pathname]);
+  
+  return <>{children}</>;
+};
 
 // Animation wrapper for route transitions
 const AnimationWrapper = ({ children }: { children: React.ReactNode }) => {
@@ -166,15 +194,17 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <AuthNavigationHandler>
+            <AppRoutes />
+          </AuthNavigationHandler>
+        </TooltipProvider>
+      </AuthProvider>
+    </BrowserRouter>
   </QueryClientProvider>
 );
 

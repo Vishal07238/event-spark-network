@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -55,8 +54,6 @@ export const LoginProvider = ({ children }: { children: React.ReactNode }) => {
       // Set auth state
       authLogin(result.user, result.token);
       
-      // Redirect based on user role
-      navigate("/volunteer/dashboard");
       setIsLoading(false);
     } catch (error) {
       console.error("Login error:", error);
@@ -88,8 +85,6 @@ export const LoginProvider = ({ children }: { children: React.ReactNode }) => {
       // Set auth state
       authLogin(result.user, result.token);
       
-      // Redirect based on user role
-      navigate("/organizer/dashboard");
       setIsLoading(false);
     } catch (error) {
       console.error("Login error:", error);
@@ -121,8 +116,6 @@ export const LoginProvider = ({ children }: { children: React.ReactNode }) => {
       // Set auth state
       authLogin(result.user, result.token);
       
-      // Redirect based on user role
-      navigate("/admin/dashboard");
       setIsLoading(false);
     } catch (error) {
       console.error("Login error:", error);
