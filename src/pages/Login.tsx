@@ -44,7 +44,7 @@ export function LoginTabs() {
           )}
           {activeTab === "admin" && <AdminLoginForm />}
           
-          <LoginCredentialHelp role={activeTab} />
+          <LoginCredentialHelp roleType={activeTab} />
         </div>
       </Tabs>
     </div>
