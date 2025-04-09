@@ -62,6 +62,7 @@ export interface Event {
   contactPerson?: string;
   contactEmail?: string;
   registeredUsers?: string[];
+  volunteers?: string[]; // Added volunteers property
 }
 
 export interface Task {
