@@ -27,6 +27,8 @@ import VolunteerProfile from "./pages/volunteer/Profile";
 // Organizer pages
 import OrganizerEvents from "./pages/organizer/Events";
 import OrganizerDashboard from "./pages/organizer/Dashboard";
+import OrganizerMessages from "./pages/organizer/Messages";
+import OrganizerVolunteers from "./pages/organizer/Volunteers";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -123,6 +125,22 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute allowedRoles={["organizer"]}>
               <OrganizerEvents />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/organizer/messages" 
+          element={
+            <ProtectedRoute allowedRoles={["organizer"]}>
+              <OrganizerMessages />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/organizer/volunteers" 
+          element={
+            <ProtectedRoute allowedRoles={["organizer"]}>
+              <OrganizerVolunteers />
             </ProtectedRoute>
           } 
         />
