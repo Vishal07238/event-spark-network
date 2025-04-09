@@ -1,62 +1,70 @@
 
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, Circle, Clock, Calendar } from "lucide-react";
+import { CheckCircle2, Circle, Clock, Calendar, ArrowUpRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { getAllEvents, getUserTasks } from "@/utils/auth";
+import { Event, Task } from "@/types/auth";
+import { formatDistanceToNow } from "date-fns";
 
 export default function VolunteerTasks() {
-  // Mock tasks data
-  const tasks = [
-    {
-      id: 1,
-      title: "Register attendees at the entrance",
-      event: "Beach Cleanup",
-      dueDate: "August 15, 2023",
-      priority: "high",
-      status: "pending",
-    },
-    {
-      id: 2,
-      title: "Distribute cleaning supplies to volunteers",
-      event: "Beach Cleanup",
-      dueDate: "August 15, 2023",
-      priority: "medium",
-      status: "pending",
-    },
-    {
-      id: 3,
-      title: "Coordinate social media coverage",
-      event: "Food Drive",
-      dueDate: "August 20, 2023",
-      priority: "low",
-      status: "pending",
-    },
-    {
-      id: 4,
-      title: "Assist with food sorting and packaging",
-      event: "Food Drive",
-      dueDate: "August 20, 2023",
-      priority: "medium",
-      status: "completed",
-    },
-    {
-      id: 5,
-      title: "Help with event setup",
-      event: "Animal Shelter Support",
-      dueDate: "September 18, 2023",
-      priority: "high",
-      status: "completed",
-    }
+  const { state } = useAuth();
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [registeredEvents, setRegisteredEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load tasks and registered events
+  useEffect(() => {
+    if (!state.user) return;
+    
+    setIsLoading(true);
+    
+    // Get assigned tasks
+    const userTasks = getUserTasks(state.user.id);
+    setTasks(userTasks);
+    
+    // Get events the volunteer is registered for
+    const events = getAllEvents();
+    const userEvents = events.filter(event => 
+      event.registeredUsers?.includes(state.user.id)
+    );
+    setRegisteredEvents(userEvents);
+    
+    setIsLoading(false);
+  }, [state.user]);
+
+  // All activities (both tasks and registered events)
+  const allActivities = [
+    ...tasks.map(task => ({
+      id: task.id,
+      title: task.title,
+      event: task.eventId ? getAllEvents().find(e => e.id === task.eventId)?.title || 'Unknown Event' : 'General Task',
+      dueDate: task.dueDate || 'No due date',
+      priority: task.priority,
+      status: task.status,
+      type: 'task'
+    })),
+    ...registeredEvents.map(event => ({
+      id: `event-${event.id}`,
+      title: `Attend ${event.title}`,
+      event: event.title,
+      dueDate: event.date,
+      priority: 'medium',
+      status: new Date(event.date) < new Date() ? 'completed' : 'pending',
+      type: 'event'
+    }))
   ];
 
-  const pendingTasks = tasks.filter(task => task.status === "pending");
-  const completedTasks = tasks.filter(task => task.status === "completed");
+  const pendingActivities = allActivities.filter(activity => activity.status === "pending");
+  const completedActivities = allActivities.filter(activity => activity.status === "completed");
 
-  const TaskItem = ({ task }) => (
+  const ActivityItem = ({ activity }) => (
     <div className="flex items-start space-x-4 py-4 border-b last:border-0">
-      {task.status === "completed" ? (
+      {activity.status === "completed" ? (
         <CheckCircle2 className="h-6 w-6 text-primary shrink-0 mt-0.5" />
       ) : (
         <Circle className="h-6 w-6 text-muted-foreground shrink-0 mt-0.5" />
@@ -65,21 +73,27 @@ export default function VolunteerTasks() {
       <div className="flex-1 min-width-0">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
           <div>
-            <h4 className="font-medium">{task.title}</h4>
-            <p className="text-sm text-muted-foreground">Event: {task.event}</p>
+            <h4 className="font-medium">{activity.title}</h4>
+            <p className="text-sm text-muted-foreground">Event: {activity.event}</p>
           </div>
           
           <div className="flex flex-wrap gap-2">
             <Badge 
-              variant={task.priority === "high" ? "destructive" : task.priority === "medium" ? "default" : "secondary"}
+              variant={activity.priority === "high" ? "destructive" : activity.priority === "medium" ? "default" : "secondary"}
             >
-              {task.priority} priority
+              {activity.priority} priority
             </Badge>
             
             <div className="flex items-center text-xs text-muted-foreground">
               <Calendar className="h-3 w-3 mr-1" />
-              {task.dueDate}
+              {activity.dueDate}
             </div>
+            
+            {activity.type === 'event' && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                Event <ArrowUpRight className="h-3 w-3" />
+              </Badge>
+            )}
           </div>
         </div>
       </div>
@@ -90,9 +104,9 @@ export default function VolunteerTasks() {
     <DashboardLayout userType="volunteer">
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">My Tasks</h1>
+          <h1 className="text-3xl font-bold tracking-tight">My Tasks & Events</h1>
           <p className="text-muted-foreground">
-            Manage your tasks for upcoming and past volunteer events
+            Manage your tasks and upcoming registered events
           </p>
         </div>
 
@@ -101,13 +115,13 @@ export default function VolunteerTasks() {
             <div className="flex items-center space-x-2">
               <Clock className="h-5 w-5 text-muted-foreground" />
               <span>
-                <span className="font-medium">{pendingTasks.length}</span> pending tasks
+                <span className="font-medium">{pendingActivities.length}</span> pending
               </span>
             </div>
             <div className="flex items-center space-x-2">
               <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
               <span>
-                <span className="font-medium">{completedTasks.length}</span> completed
+                <span className="font-medium">{completedActivities.length}</span> completed
               </span>
             </div>
           </div>
@@ -117,27 +131,32 @@ export default function VolunteerTasks() {
           <TabsList>
             <TabsTrigger value="pending">Pending</TabsTrigger>
             <TabsTrigger value="completed">Completed</TabsTrigger>
-            <TabsTrigger value="all">All Tasks</TabsTrigger>
+            <TabsTrigger value="all">All Activities</TabsTrigger>
+            <TabsTrigger value="events">Registered Events</TabsTrigger>
           </TabsList>
           
           <TabsContent value="pending" className="mt-6">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle>Pending Tasks</CardTitle>
+                <CardTitle>Pending Tasks & Events</CardTitle>
                 <CardDescription>
-                  Tasks you need to complete for your upcoming events
+                  Tasks and events you need to complete
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {pendingTasks.length === 0 ? (
+                {isLoading ? (
+                  <div className="py-8 text-center">
+                    <p className="text-muted-foreground">Loading...</p>
+                  </div>
+                ) : pendingActivities.length === 0 ? (
                   <div className="text-center py-6">
-                    <p className="text-muted-foreground mb-4">You don't have any pending tasks</p>
-                    <Button variant="outline">Browse Events</Button>
+                    <p className="text-muted-foreground mb-4">You don't have any pending tasks or events</p>
+                    <Button variant="outline" onClick={() => window.location.href = "/events"}>Browse Events</Button>
                   </div>
                 ) : (
                   <div>
-                    {pendingTasks.map(task => (
-                      <TaskItem key={task.id} task={task} />
+                    {pendingActivities.map(activity => (
+                      <ActivityItem key={activity.id} activity={activity} />
                     ))}
                   </div>
                 )}
@@ -148,20 +167,24 @@ export default function VolunteerTasks() {
           <TabsContent value="completed" className="mt-6">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle>Completed Tasks</CardTitle>
+                <CardTitle>Completed Tasks & Events</CardTitle>
                 <CardDescription>
-                  Tasks you have already completed
+                  Tasks and events you have already completed
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {completedTasks.length === 0 ? (
+                {isLoading ? (
+                  <div className="py-8 text-center">
+                    <p className="text-muted-foreground">Loading...</p>
+                  </div>
+                ) : completedActivities.length === 0 ? (
                   <div className="text-center py-6">
-                    <p className="text-muted-foreground">You haven't completed any tasks yet</p>
+                    <p className="text-muted-foreground">You haven't completed any tasks or events yet</p>
                   </div>
                 ) : (
                   <div>
-                    {completedTasks.map(task => (
-                      <TaskItem key={task.id} task={task} />
+                    {completedActivities.map(activity => (
+                      <ActivityItem key={activity.id} activity={activity} />
                     ))}
                   </div>
                 )}
@@ -172,21 +195,83 @@ export default function VolunteerTasks() {
           <TabsContent value="all" className="mt-6">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle>All Tasks</CardTitle>
+                <CardTitle>All Tasks & Events</CardTitle>
                 <CardDescription>
-                  Overview of all your tasks
+                  Overview of all your tasks and events
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {tasks.length === 0 ? (
+                {isLoading ? (
+                  <div className="py-8 text-center">
+                    <p className="text-muted-foreground">Loading...</p>
+                  </div>
+                ) : allActivities.length === 0 ? (
                   <div className="text-center py-6">
-                    <p className="text-muted-foreground mb-4">You don't have any tasks</p>
-                    <Button variant="outline">Browse Events</Button>
+                    <p className="text-muted-foreground mb-4">You don't have any tasks or events</p>
+                    <Button variant="outline" onClick={() => window.location.href = "/events"}>Browse Events</Button>
                   </div>
                 ) : (
                   <div>
-                    {tasks.map(task => (
-                      <TaskItem key={task.id} task={task} />
+                    {allActivities.map(activity => (
+                      <ActivityItem key={activity.id} activity={activity} />
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="events" className="mt-6">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle>Registered Events</CardTitle>
+                <CardDescription>
+                  Events you have registered for
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="py-8 text-center">
+                    <p className="text-muted-foreground">Loading...</p>
+                  </div>
+                ) : registeredEvents.length === 0 ? (
+                  <div className="text-center py-6">
+                    <p className="text-muted-foreground mb-4">You haven't registered for any events yet</p>
+                    <Button onClick={() => window.location.href = "/events"}>Browse Events</Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {registeredEvents.map(event => (
+                      <div key={event.id} className="p-4 border rounded-lg">
+                        <div className="flex items-start sm:items-center flex-col sm:flex-row sm:justify-between gap-4">
+                          <div>
+                            <h3 className="font-semibold text-lg">{event.title}</h3>
+                            <p className="text-muted-foreground">{event.organization}</p>
+                          </div>
+                          <Badge variant={new Date(event.date) < new Date() ? "secondary" : "default"}>
+                            {new Date(event.date) < new Date() ? "Past Event" : "Upcoming"}
+                          </Badge>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-x-6 gap-y-2 mt-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            {event.date} • {event.time}
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Location:</span> {event.location}
+                          </div>
+                        </div>
+                        
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-4"
+                          onClick={() => window.location.href = `/events/${event.id}`}
+                        >
+                          View Details
+                        </Button>
+                      </div>
                     ))}
                   </div>
                 )}

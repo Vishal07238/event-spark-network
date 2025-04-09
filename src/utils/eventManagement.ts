@@ -22,7 +22,9 @@ const initializeEvents = () => {
       status: "upcoming",
       description: "Join us for a beach cleanup event to help preserve our coastal ecosystems.",
       image: "https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?q=80&w=300",
-      organizerId: "org-1"
+      organizerId: "org-1",
+      registeredUsers: [],
+      volunteers: []
     },
     {
       id: 2,
@@ -35,7 +37,9 @@ const initializeEvents = () => {
       status: "upcoming",
       description: "Help collect and distribute food to families in need.",
       image: "https://images.unsplash.com/photo-1593113598332-cd59a0c3a9a4?q=80&w=300",
-      organizerId: "org-1"
+      organizerId: "org-1",
+      registeredUsers: [],
+      volunteers: []
     },
   ];
   
@@ -62,7 +66,9 @@ export const createEvent = (eventData: any, organizerId: string): Event => {
     id: Date.now(),
     participants: 0,
     status: 'upcoming',
-    organizerId
+    organizerId,
+    registeredUsers: [],
+    volunteers: []
   };
   
   events.push(newEvent);
@@ -113,15 +119,45 @@ export const registerForEvent = (eventId: number, userId: string): Event | null 
   
   if (eventIndex === -1) return null;
   
-  // Update participants count
-  events[eventIndex].participants += 1;
-  
-  // Store registered user (in a real app, this would be a many-to-many relationship)
+  // Initialize arrays if they don't exist
   if (!events[eventIndex].registeredUsers) {
     events[eventIndex].registeredUsers = [];
   }
+  
+  // Check if user is already registered
+  if (events[eventIndex].registeredUsers.includes(userId)) {
+    return events[eventIndex]; // Already registered
+  }
+  
+  // Update participants count
+  events[eventIndex].participants += 1;
+  
+  // Store registered user
   events[eventIndex].registeredUsers.push(userId);
+  
+  // Add to volunteers list as well
+  if (!events[eventIndex].volunteers) {
+    events[eventIndex].volunteers = [];
+  }
+  if (!events[eventIndex].volunteers.includes(userId)) {
+    events[eventIndex].volunteers.push(userId);
+  }
   
   saveStorageData(EVENTS_STORAGE_KEY, events);
   return events[eventIndex];
+};
+
+// Get events a user is registered for
+export const getUserRegisteredEvents = (userId: string): Event[] => {
+  const events = getAllEvents();
+  return events.filter((event: Event) => 
+    event.registeredUsers?.includes(userId)
+  );
+};
+
+// Check if a user is registered for an event
+export const isUserRegisteredForEvent = (eventId: number, userId: string): boolean => {
+  const event = getEventById(eventId);
+  if (!event || !event.registeredUsers) return false;
+  return event.registeredUsers.includes(userId);
 };
