@@ -1,3 +1,4 @@
+
 import { Event } from '@/types/auth';
 import { 
   initializeLocalStorage, 
@@ -8,13 +9,13 @@ import {
 
 // Initialize events in localStorage if needed
 const initializeEvents = () => {
-  // Mock initial events data
+  // Mock initial events data with updated dates
   const initialEvents = [
     {
       id: 1,
       title: "Beach Cleanup",
       organization: "Ocean Conservancy",
-      date: "August 15, 2023",
+      date: "May 25, 2025",
       time: "9:00 AM - 12:00 PM",
       location: "Venice Beach, CA",
       participants: 24,
@@ -30,7 +31,7 @@ const initializeEvents = () => {
       id: 2,
       title: "Food Drive",
       organization: "Local Food Bank",
-      date: "August 20, 2023",
+      date: "June 18, 2025",
       time: "1:00 PM - 4:00 PM",
       location: "Downtown Community Center",
       participants: 12,
