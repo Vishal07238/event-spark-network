@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +12,7 @@ import { formatDistanceToNow } from "date-fns";
 import TaskItem from "@/components/task/TaskItem";
 import EventCompletionButton from "@/components/events/EventCompletionButton";
 import { completeTask } from "@/utils/taskManagement";
+import { getUserRegisteredEvents } from "@/utils/eventManagement";
 
 export default function VolunteerTasks() {
   const { state } = useAuth();
@@ -31,11 +31,8 @@ export default function VolunteerTasks() {
     const userTasks = getUserTasks(state.user.id);
     setTasks(userTasks);
     
-    // Get events the volunteer is registered for
-    const events = getAllEvents();
-    const userEvents = events.filter(event => 
-      event.registeredUsers?.includes(state.user.id)
-    );
+    // Get events the volunteer is registered for using the utility function
+    const userEvents = getUserRegisteredEvents(state.user.id);
     setRegisteredEvents(userEvents);
     
     setIsLoading(false);

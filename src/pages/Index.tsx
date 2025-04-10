@@ -1,14 +1,43 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Calendar, Users, Activity, Heart, ChevronRight, Search, Award, BarChart, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getAllEvents } from "@/utils/eventManagement";
 
 export default function Index() {
   const navigate = useNavigate();
   const [isLoaded, setIsLoaded] = useState(false);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
 
   useEffect(() => {
+    // Load real events from the data store
+    const allEvents = getAllEvents();
+    
+    // Sort events by date (assuming date strings are formatted correctly)
+    const sortedEvents = [...allEvents].sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateA.getTime() - dateB.getTime();
+    });
+    
+    // Take the first 3 upcoming events
+    const upcoming = sortedEvents
+      .filter(event => new Date(event.date) >= new Date())
+      .slice(0, 3)
+      .map(event => ({
+        id: event.id,
+        title: event.title,
+        location: event.location,
+        date: event.date,
+        icon: event.title.includes("Beach") ? "🌊" : 
+              event.title.includes("Food") ? "🍎" : 
+              event.title.includes("Habitat") ? "🏗️" : "📅"
+      }));
+    
+    setUpcomingEvents(upcoming);
+    
     const timer = setTimeout(() => {
       setIsLoaded(true);
     }, 100);
@@ -92,48 +121,32 @@ export default function Index() {
                   <div className="px-8 pt-8 pb-6">
                     <h3 className="text-lg font-semibold mb-3">Upcoming Events</h3>
                     <div className="space-y-4">
-                      {[
-                        { 
-                          title: "Beach Cleanup", 
-                          location: "Venice Beach, CA", 
-                          date: "August 15, 2023",
-                          icon: "🌊",
-                          id: 1
-                        },
-                        { 
-                          title: "Food Drive", 
-                          location: "Downtown Food Bank", 
-                          date: "August 20, 2023",
-                          icon: "🍎",
-                          id: 2 
-                        },
-                        { 
-                          title: "Habitat Building", 
-                          location: "Westside Community", 
-                          date: "August 27, 2023",
-                          icon: "🏗️",
-                          id: 3
-                        }
-                      ].map((event, index) => (
-                        <div 
-                          key={index} 
-                          className={`p-3 rounded-lg border bg-white/5 backdrop-blur-sm hover:bg-accent transition-all cursor-pointer animate-fade-in`}
-                          style={{ animationDelay: `${index * 200}ms` }}
-                          onClick={() => navigate(`/events/${event.id}`)}
-                        >
-                          <div className="flex items-start">
-                            <div className="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
-                              <span className="text-lg">{event.icon}</span>
+                      {upcomingEvents.length > 0 ? (
+                        upcomingEvents.map((event, index) => (
+                          <div 
+                            key={index} 
+                            className={`p-3 rounded-lg border bg-white/5 backdrop-blur-sm hover:bg-accent transition-all cursor-pointer animate-fade-in`}
+                            style={{ animationDelay: `${index * 200}ms` }}
+                            onClick={() => navigate(`/events/${event.id}`)}
+                          >
+                            <div className="flex items-start">
+                              <div className="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                                <span className="text-lg">{event.icon}</span>
+                              </div>
+                              <div className="ml-4">
+                                <h4 className="text-sm font-medium">{event.title}</h4>
+                                <p className="text-xs text-muted-foreground mt-1">{event.location}</p>
+                                <p className="text-xs text-muted-foreground">{event.date}</p>
+                              </div>
+                              <ChevronRight className="ml-auto h-5 w-5 text-muted-foreground/50" />
                             </div>
-                            <div className="ml-4">
-                              <h4 className="text-sm font-medium">{event.title}</h4>
-                              <p className="text-xs text-muted-foreground mt-1">{event.location}</p>
-                              <p className="text-xs text-muted-foreground">{event.date}</p>
-                            </div>
-                            <ChevronRight className="ml-auto h-5 w-5 text-muted-foreground/50" />
                           </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-3 text-muted-foreground">
+                          No upcoming events found
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
                   <div className="px-8 py-4 bg-accent/50 border-t">
