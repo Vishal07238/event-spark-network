@@ -6,6 +6,7 @@ import {
   saveStorageData, 
   TASKS_STORAGE_KEY 
 } from './authUtils';
+import { getEventById } from './eventManagement';
 
 // Initialize tasks in localStorage if needed
 const initializeTasks = () => {
@@ -21,19 +22,38 @@ export const getAllTasks = (): Task[] => {
 // Get tasks for a specific user
 export const getUserTasks = (userId: string): Task[] => {
   const tasks = getAllTasks();
-  return tasks.filter((task: Task) => task.assignedTo === userId);
+  return tasks.filter((task: Task) => task.assignedTo === userId)
+    .map(task => {
+      // Add eventTitle to tasks with eventId for better display
+      if (task.eventId && !task.eventTitle) {
+        const event = getEventById(task.eventId);
+        if (event) {
+          task.eventTitle = event.title;
+        }
+      }
+      return task;
+    });
 };
 
 // Create a task
 export const createTask = (taskData: any, organizerId: string): Task => {
   const tasks = getAllTasks();
-  const newTask = {
+  
+  const newTask: Task = {
     ...taskData,
     id: `task-${Date.now()}`,
     createdBy: organizerId,
     status: 'pending',
     createdAt: new Date().toISOString()
   };
+  
+  // If task is related to an event, fetch and add event title
+  if (newTask.eventId) {
+    const event = getEventById(newTask.eventId);
+    if (event) {
+      newTask.eventTitle = event.title;
+    }
+  }
   
   tasks.push(newTask);
   saveStorageData(TASKS_STORAGE_KEY, tasks);

@@ -1,4 +1,3 @@
-
 import { Event } from '@/types/auth';
 import { 
   initializeLocalStorage, 
@@ -37,7 +36,7 @@ const initializeEvents = () => {
       participants: 12,
       status: "upcoming",
       description: "Help collect and distribute food to families in need.",
-      image: "https://images.unsplash.com/photo-1593113598332-cd59a0c3a9a4?q=80&w=300",
+      image: "https://images.unsplash.com/photo-1593113598332-cd59a0c9a9a4?q=80&w=300",
       organizerId: "org-1",
       registeredUsers: [],
       volunteers: [],
@@ -144,6 +143,11 @@ export const registerForEvent = (eventId: number, userId: string): Event | null 
   }
   if (!events[eventIndex].volunteers.includes(userId)) {
     events[eventIndex].volunteers.push(userId);
+  }
+  
+  // Initialize completedBy if it doesn't exist
+  if (!events[eventIndex].completedBy) {
+    events[eventIndex].completedBy = [];
   }
   
   saveStorageData(EVENTS_STORAGE_KEY, events);

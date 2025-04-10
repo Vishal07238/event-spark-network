@@ -1,3 +1,4 @@
+
 export type UserRole = "volunteer" | "organizer" | "admin";
 
 export interface User {
@@ -62,7 +63,7 @@ export interface Event {
   contactEmail?: string;
   registeredUsers?: string[];
   volunteers?: string[];
-  completedBy?: string;
+  completedBy?: string[];
 }
 
 export interface Task {
@@ -70,6 +71,7 @@ export interface Task {
   title: string;
   description: string;
   eventId?: number;
+  eventTitle?: string;
   assignedTo: string;
   createdBy: string;
   status: 'pending' | 'in-progress' | 'completed' | 'cancelled';

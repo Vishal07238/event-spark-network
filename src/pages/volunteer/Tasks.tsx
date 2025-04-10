@@ -12,6 +12,7 @@ import { Event, Task } from "@/types/auth";
 import { formatDistanceToNow } from "date-fns";
 import TaskItem from "@/components/task/TaskItem";
 import EventCompletionButton from "@/components/events/EventCompletionButton";
+import { completeTask } from "@/utils/taskManagement";
 
 export default function VolunteerTasks() {
   const { state } = useAuth();
@@ -53,7 +54,7 @@ export default function VolunteerTasks() {
     ...tasks.map(task => ({
       id: task.id,
       title: task.title,
-      event: task.eventId ? getAllEvents().find(e => e.id === task.eventId)?.title || 'Unknown Event' : 'General Task',
+      event: task.eventTitle || 'General Task',
       dueDate: task.dueDate || 'No due date',
       priority: task.priority,
       status: task.status,
@@ -117,8 +118,8 @@ export default function VolunteerTasks() {
                 variant="outline" 
                 size="sm"
                 onClick={() => {
-                  if (activity.taskObject) {
-                    completeTask(activity.taskObject.id, state.user?.id);
+                  if (activity.taskObject && state.user) {
+                    completeTask(activity.taskObject.id, state.user.id);
                     handleTaskComplete();
                   }
                 }}
