@@ -1,304 +1,167 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import DashboardLayout from "@/layouts/DashboardLayout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle2, Calendar, MapPin, Users, Clock } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { getAllEvents, getUserRegisteredEvents } from "@/utils/eventManagement";
+import { getUserTasks, getOrganizerTasks } from "@/utils/taskManagement";
+import { Event, Task } from "@/types/auth";
 import StatsCard from "@/components/dashboard/StatsCard";
 import RealtimeStatus from "@/components/dashboard/RealtimeStatus";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarIcon, Users, CalendarDays, Megaphone, Activity, CheckCircle2 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { getAllEvents } from "@/utils/auth";
-import { getOrganizerTasks } from "@/utils/taskManagement";
-import { format } from "date-fns";
 
 export default function OrganizerDashboard() {
   const { state } = useAuth();
-  const [events, setEvents] = useState([]);
-  const [tasks, setTasks] = useState([]);
-  const [completedEvents, setCompletedEvents] = useState([]);
-  const [isRealtimeEnabled, setIsRealtimeEnabled] = useState(true);
-  const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'open' | 'closed'>('connecting');
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(new Date());
-  const [dashboardView, setDashboardView] = useState('overview');
+  const [events, setEvents] = useState<Event[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [registeredVolunteers, setRegisteredVolunteers] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Simulate loading data
   useEffect(() => {
-    const loadData = () => {
-      try {
-        // Load events
-        const allEvents = getAllEvents();
-        // Filter events for this organizer
-        const organizerEvents = allEvents.filter((event: any) => 
-          event.organizerId === state.user?.id
-        );
-        setEvents(organizerEvents);
-        
-        // Find completed events
-        const eventsWithCompletions = organizerEvents.filter((event: any) => 
-          event.completedBy && event.completedBy.length > 0
-        );
-        setCompletedEvents(eventsWithCompletions);
-        
-        // Load tasks
-        if (state.user) {
-          const organizerTasks = getOrganizerTasks(state.user.id);
-          setTasks(organizerTasks);
-        }
-        
-        setLastUpdate(new Date());
-      } catch (error) {
-        console.error("Error loading events:", error);
+    if (!state.user) return;
+
+    setIsLoading(true);
+
+    // Get all events created by the organizer
+    const organizerEvents = getAllEvents().filter(
+      (event) => event.organizerId === state.user.id
+    );
+    setEvents(organizerEvents);
+
+    // Get all tasks created by the organizer
+    const organizerTasks = getOrganizerTasks(state.user.id);
+    setTasks(organizerTasks);
+
+    // Calculate the total number of registered volunteers across all events
+    let totalVolunteers = 0;
+    organizerEvents.forEach((event) => {
+      if (event.registeredUsers) {
+        totalVolunteers += event.registeredUsers.length;
       }
-    };
+    });
+    setRegisteredVolunteers(totalVolunteers);
 
-    loadData();
-    
-    // Simulate realtime connection
-    const timer = setTimeout(() => {
-      setRealtimeStatus('open');
-    }, 1500);
+    setIsLoading(false);
+  }, [state.user]);
 
-    return () => clearTimeout(timer);
-  }, [state.user?.id]);
-
-  // Stats calculations
-  const totalEvents = events.length;
-  const activeEvents = events.filter((event: any) => event.status === 'upcoming').length;
-  const totalParticipants = events.reduce((sum: number, event: any) => sum + (event.participants || 0), 0);
-  const averageParticipants = totalEvents > 0 ? Math.round(totalParticipants / totalEvents) : 0;
-  const completedCount = completedEvents.length;
-
-  const toggleRealtime = () => {
-    setIsRealtimeEnabled(!isRealtimeEnabled);
-    if (!isRealtimeEnabled) {
-      setRealtimeStatus('connecting');
-      setTimeout(() => setRealtimeStatus('open'), 1500);
-    } else {
-      setRealtimeStatus('closed');
-    }
-  };
-
-  const forceReconnect = () => {
-    if (isRealtimeEnabled) {
-      setRealtimeStatus('connecting');
-      setTimeout(() => {
-        setRealtimeStatus('open');
-        setLastUpdate(new Date());
-      }, 1500);
-    } else {
-      setLastUpdate(new Date());
-    }
-  };
+  // Calculate upcoming and past events
+  const upcomingEvents = events.filter((event) => new Date(event.date) >= new Date());
+  const pastEvents = events.filter((event) => new Date(event.date) < new Date());
 
   return (
     <DashboardLayout userType="organizer">
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col md:flex-row justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight mb-1">Organizer Dashboard</h1>
-            <p className="text-muted-foreground">
-              Welcome back, {state.user?.name || 'Organizer'}!
-            </p>
-          </div>
-          
-          <RealtimeStatus 
-            isRealtimeEnabled={isRealtimeEnabled}
-            realtimeStatus={realtimeStatus}
-            toggleRealtime={toggleRealtime}
-            forceReconnect={forceReconnect}
-            lastUpdate={lastUpdate}
-          />
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Track events, tasks, and volunteer engagement.
+          </p>
         </div>
 
-        {/* Stats overview */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatsCard
             title="Total Events"
-            value={totalEvents}
-            icon={<CalendarIcon className="h-4 w-4" />}
-            description="All events you've organized"
+            value={events.length.toString()}
+            percentageIncrease={12}
+            description="Total number of events created"
           />
           <StatsCard
-            title="Active Events"
-            value={activeEvents}
-            icon={<Activity className="h-4 w-4" />}
-            description="Events currently active"
-            progress={totalEvents > 0 ? (activeEvents / totalEvents) * 100 : 0}
+            title="Upcoming Events"
+            value={upcomingEvents.length.toString()}
+            percentageIncrease={8}
+            description="Number of events scheduled"
           />
           <StatsCard
-            title="Total Participants"
-            value={totalParticipants}
-            icon={<Users className="h-4 w-4" />}
-            description="All volunteers registered"
+            title="Volunteers Registered"
+            value={registeredVolunteers.toString()}
+            percentageIncrease={15}
+            description="Total volunteers registered for events"
           />
           <StatsCard
-            title="Avg. Participants"
-            value={averageParticipants}
-            icon={<CalendarDays className="h-4 w-4" />}
-            description="Per event average"
-          />
-          <StatsCard
-            title="Completed Events"
-            value={completedCount}
-            icon={<CheckCircle2 className="h-4 w-4" />}
-            description="Events marked complete"
+            title="Tasks Assigned"
+            value={tasks.length.toString()}
+            percentageIncrease={5}
+            description="Total tasks assigned to volunteers"
           />
         </div>
 
-        {/* Dashboard tabs */}
-        <Tabs defaultValue={dashboardView} onValueChange={setDashboardView} className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="upcoming">Upcoming Events</TabsTrigger>
-            <TabsTrigger value="completed">Completed Activities</TabsTrigger>
-            <TabsTrigger value="insights">Insights</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="overview" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {events.length > 0 ? (
-                    events.slice(0, 3).map((event: any) => (
-                      <div key={event.id} className="flex items-center gap-4 p-3 rounded-lg border">
-                        <div className="rounded-full bg-primary/10 p-2">
-                          <Megaphone className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-semibold">{event.title}</h4>
-                          <p className="text-sm text-muted-foreground">{event.organization} • {event.date}</p>
-                        </div>
-                        <div className="text-sm font-semibold">
-                          {event.participants} Participants
-                        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Upcoming Events</CardTitle>
+              <CardDescription>
+                Events you have scheduled and are yet to happen.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <p>Loading...</p>
+              ) : upcomingEvents.length === 0 ? (
+                <p>No upcoming events.</p>
+              ) : (
+                <ul className="list-none space-y-4">
+                  {upcomingEvents.map((event) => (
+                    <li key={event.id} className="border rounded-md p-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold">{event.title}</h3>
+                        <Badge variant="outline">Upcoming</Badge>
                       </div>
-                    ))
-                  ) : (
-                    <p className="text-center text-muted-foreground p-4">
-                      No events to display. Create your first event to get started.
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="upcoming" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Upcoming Events</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {events.filter((event: any) => event.status === 'upcoming').length > 0 ? (
-                  <div className="space-y-2">
-                    {events
-                      .filter((event: any) => event.status === 'upcoming')
-                      .map((event: any) => (
-                        <div key={event.id} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div>
-                            <h4 className="font-semibold">{event.title}</h4>
-                            <p className="text-sm text-muted-foreground">{event.date} • {event.time}</p>
-                          </div>
-                          <div className="text-sm font-medium bg-primary/10 text-primary px-2 py-1 rounded">
-                            {event.participants} registered
-                          </div>
-                        </div>
-                      ))
-                    }
-                  </div>
-                ) : (
-                  <p className="text-center text-muted-foreground p-4">
-                    No upcoming events. Schedule your next event to engage volunteers.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="completed" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Completed Events & Tasks</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {completedEvents.length > 0 || tasks.filter((task: any) => task.status === 'completed').length > 0 ? (
-                  <div className="space-y-6">
-                    {completedEvents.length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-semibold mb-3">Completed Events</h3>
-                        <div className="space-y-2">
-                          {completedEvents.map((event: any) => (
-                            <div key={event.id} className="p-3 border rounded-lg">
-                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                <div>
-                                  <h4 className="font-medium">{event.title}</h4>
-                                  <p className="text-sm text-muted-foreground">{event.date}</p>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                  <Badge variant="outline" className="flex items-center gap-1">
-                                    <CheckCircle2 className="h-3 w-3" /> 
-                                    {event.completedBy?.length || 0} of {event.registeredUsers?.length || 0} completed
-                                  </Badge>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                      <div className="text-sm text-muted-foreground mt-2">
+                        <Calendar className="h-4 w-4 inline-block mr-1" />
+                        {event.date}
                       </div>
-                    )}
-                    
-                    {tasks.filter((task: any) => task.status === 'completed').length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-semibold mb-3">Completed Tasks</h3>
-                        <div className="space-y-2">
-                          {tasks
-                            .filter((task: any) => task.status === 'completed')
-                            .map((task: any) => (
-                              <div key={task.id} className="p-3 border rounded-lg">
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                  <div>
-                                    <h4 className="font-medium">{task.title}</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                      Completed on: {task.completedAt ? format(new Date(task.completedAt), 'PPP') : 'Unknown'}
-                                    </p>
-                                  </div>
-                                  <Badge variant="outline" className="flex items-center gap-1">
-                                    <CheckCircle2 className="h-3 w-3" /> Completed
-                                  </Badge>
-                                </div>
-                              </div>
-                            ))
-                          }
-                        </div>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        <MapPin className="h-4 w-4 inline-block mr-1" />
+                        {event.location}
                       </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-center text-muted-foreground p-4">
-                    No completed events or tasks yet. They will appear here when volunteers complete them.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="insights" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Event Insights</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[200px] flex items-center justify-center">
-                  <p className="text-muted-foreground">
-                    Event performance metrics will appear here once you have more data.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Tasks</CardTitle>
+              <CardDescription>
+                Tasks assigned to volunteers for your events.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <p>Loading...</p>
+              ) : tasks.length === 0 ? (
+                <p>No tasks assigned.</p>
+              ) : (
+                <ul className="list-none space-y-4">
+                  {tasks.slice(0, 3).map((task) => (
+                    <li key={task.id} className="border rounded-md p-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold">{task.title}</h3>
+                        <Badge variant="secondary">{task.priority} Priority</Badge>
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-2">
+                        <Users className="h-4 w-4 inline-block mr-1" />
+                        Assigned to: {task.assignedTo}
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        <Clock className="h-4 w-4 inline-block mr-1" />
+                        Due Date: {task.dueDate || "No due date"}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div>
+          <RealtimeStatus />
+        </div>
       </div>
     </DashboardLayout>
   );

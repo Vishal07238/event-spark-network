@@ -85,109 +85,113 @@ const AnimationWrapper = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-// Routes wrapper component
+// Routes wrapper component that includes the AuthNavigationHandler
 const AppRoutes = () => {
   return (
-    <AnimationWrapper>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<Index />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/organizer/register" element={<OrganizerRegister />} />
-        <Route path="/events" element={<Events />} />
-        <Route path="/events/:id" element={<EventDetail />} />
-        
-        {/* Volunteer routes */}
-        <Route 
-          path="/volunteer/dashboard" 
-          element={
-            <ProtectedRoute allowedRoles={["volunteer"]}>
-              <VolunteerDashboard />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/volunteer/events" 
-          element={
-            <ProtectedRoute allowedRoles={["volunteer"]}>
-              <VolunteerEvents />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/volunteer/messages" 
-          element={
-            <ProtectedRoute allowedRoles={["volunteer"]}>
-              <VolunteerMessages />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/volunteer/tasks" 
-          element={
-            <ProtectedRoute allowedRoles={["volunteer"]}>
-              <VolunteerTasks />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/volunteer/profile" 
-          element={
-            <ProtectedRoute allowedRoles={["volunteer"]}>
-              <VolunteerProfile />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Organizer routes */}
-        <Route 
-          path="/organizer/dashboard" 
-          element={
-            <ProtectedRoute allowedRoles={["organizer"]}>
-              <OrganizerDashboard />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/organizer/events" 
-          element={
-            <ProtectedRoute allowedRoles={["organizer"]}>
-              <OrganizerEvents />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/organizer/messages" 
-          element={
-            <ProtectedRoute allowedRoles={["organizer"]}>
-              <OrganizerMessages />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/organizer/volunteers" 
-          element={
-            <ProtectedRoute allowedRoles={["organizer"]}>
-              <OrganizerVolunteers />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Admin routes */}
-        <Route 
-          path="/admin/dashboard" 
-          element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Catch-all route */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </AnimationWrapper>
+    <AuthProvider>
+      <AuthNavigationHandler>
+        <AnimationWrapper>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/organizer/register" element={<OrganizerRegister />} />
+            <Route path="/events" element={<Events />} />
+            <Route path="/events/:id" element={<EventDetail />} />
+            
+            {/* Volunteer routes */}
+            <Route 
+              path="/volunteer/dashboard" 
+              element={
+                <ProtectedRoute allowedRoles={["volunteer"]}>
+                  <VolunteerDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/volunteer/events" 
+              element={
+                <ProtectedRoute allowedRoles={["volunteer"]}>
+                  <VolunteerEvents />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/volunteer/messages" 
+              element={
+                <ProtectedRoute allowedRoles={["volunteer"]}>
+                  <VolunteerMessages />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/volunteer/tasks" 
+              element={
+                <ProtectedRoute allowedRoles={["volunteer"]}>
+                  <VolunteerTasks />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/volunteer/profile" 
+              element={
+                <ProtectedRoute allowedRoles={["volunteer"]}>
+                  <VolunteerProfile />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Organizer routes */}
+            <Route 
+              path="/organizer/dashboard" 
+              element={
+                <ProtectedRoute allowedRoles={["organizer"]}>
+                  <OrganizerDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/organizer/events" 
+              element={
+                <ProtectedRoute allowedRoles={["organizer"]}>
+                  <OrganizerEvents />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/organizer/messages" 
+              element={
+                <ProtectedRoute allowedRoles={["organizer"]}>
+                  <OrganizerMessages />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/organizer/volunteers" 
+              element={
+                <ProtectedRoute allowedRoles={["organizer"]}>
+                  <OrganizerVolunteers />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Admin routes */}
+            <Route 
+              path="/admin/dashboard" 
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Catch-all route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AnimationWrapper>
+      </AuthNavigationHandler>
+    </AuthProvider>
   );
 };
 
@@ -196,15 +200,11 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <AuthNavigationHandler>
-            <AppRoutes />
-          </AuthNavigationHandler>
-        </TooltipProvider>
-      </AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <AppRoutes />
+      </TooltipProvider>
     </BrowserRouter>
   </QueryClientProvider>
 );
