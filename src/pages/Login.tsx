@@ -23,6 +23,7 @@ export default function Login() {
       <AuthLayout
         title="Welcome back"
         subtitle="Login to your VolunteerHub account"
+        type="login"
       >
         <Tabs
           defaultValue="volunteer"

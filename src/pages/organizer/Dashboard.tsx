@@ -1,16 +1,18 @@
+
 import React, { useState, useEffect } from "react";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Calendar, MapPin, Users, Clock } from "lucide-react";
+import { CheckCircle2, Calendar, MapPin, Users, Clock, Activity, BarChart3, TrendingUp, Award } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAllEvents, getUserRegisteredEvents } from "@/utils/eventManagement";
 import { getUserTasks, getOrganizerTasks } from "@/utils/taskManagement";
 import { Event, Task } from "@/types/auth";
 import StatsCard from "@/components/dashboard/StatsCard";
 import RealtimeStatus from "@/components/dashboard/RealtimeStatus";
+import { useRealTimeEvents } from "@/hooks/useRealTimeEvents";
 
 export default function OrganizerDashboard() {
   const { state } = useAuth();
@@ -18,6 +20,18 @@ export default function OrganizerDashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [registeredVolunteers, setRegisteredVolunteers] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Initialize real-time events hook
+  const {
+    realtimeStatus,
+    isRealtimeEnabled,
+    toggleRealtime,
+    forceReconnect,
+    lastUpdate
+  } = useRealTimeEvents({ 
+    organizerId: state.user?.id,
+    enabled: true
+  });
 
   useEffect(() => {
     if (!state.user) return;
@@ -49,6 +63,10 @@ export default function OrganizerDashboard() {
   // Calculate upcoming and past events
   const upcomingEvents = events.filter((event) => new Date(event.date) >= new Date());
   const pastEvents = events.filter((event) => new Date(event.date) < new Date());
+  
+  // Calculate completed tasks
+  const completedTasks = tasks.filter(task => task.status === 'completed');
+  const pendingTasks = tasks.filter(task => task.status === 'pending');
 
   return (
     <DashboardLayout userType="organizer">
@@ -64,26 +82,26 @@ export default function OrganizerDashboard() {
           <StatsCard
             title="Total Events"
             value={events.length.toString()}
-            percentageIncrease={12}
             description="Total number of events created"
+            icon={<Calendar />}
           />
           <StatsCard
             title="Upcoming Events"
             value={upcomingEvents.length.toString()}
-            percentageIncrease={8}
             description="Number of events scheduled"
+            icon={<TrendingUp />}
           />
           <StatsCard
             title="Volunteers Registered"
             value={registeredVolunteers.toString()}
-            percentageIncrease={15}
             description="Total volunteers registered for events"
+            icon={<Users />}
           />
           <StatsCard
             title="Tasks Assigned"
             value={tasks.length.toString()}
-            percentageIncrease={5}
             description="Total tasks assigned to volunteers"
+            icon={<Activity />}
           />
         </div>
 
@@ -159,8 +177,51 @@ export default function OrganizerDashboard() {
           </Card>
         </div>
 
+        <Card>
+          <CardHeader>
+            <CardTitle>Completed Activities</CardTitle>
+            <CardDescription>
+              Tasks and events that have been completed by volunteers
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <p>Loading...</p>
+            ) : completedTasks.length === 0 ? (
+              <p>No completed activities yet.</p>
+            ) : (
+              <ul className="list-none space-y-4">
+                {completedTasks.slice(0, 5).map((task) => (
+                  <li key={task.id} className="border rounded-md p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold flex items-center">
+                          <CheckCircle2 className="h-4 w-4 text-green-500 mr-2" />
+                          {task.title}
+                        </h3>
+                        {task.eventTitle && (
+                          <p className="text-sm text-muted-foreground">
+                            Event: {task.eventTitle}
+                          </p>
+                        )}
+                      </div>
+                      <Badge variant="outline" className="bg-green-50">Completed</Badge>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
         <div>
-          <RealtimeStatus />
+          <RealtimeStatus 
+            isRealtimeEnabled={isRealtimeEnabled}
+            realtimeStatus={realtimeStatus}
+            toggleRealtime={toggleRealtime}
+            forceReconnect={forceReconnect}
+            lastUpdate={lastUpdate}
+          />
         </div>
       </div>
     </DashboardLayout>

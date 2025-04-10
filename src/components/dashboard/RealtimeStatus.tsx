@@ -13,11 +13,11 @@ interface RealtimeStatusProps {
 }
 
 export default function RealtimeStatus({
-  isRealtimeEnabled,
-  realtimeStatus,
-  toggleRealtime,
-  forceReconnect,
-  lastUpdate
+  isRealtimeEnabled = false,
+  realtimeStatus = 'closed',
+  toggleRealtime = () => {},
+  forceReconnect = () => {},
+  lastUpdate = null
 }: RealtimeStatusProps) {
   // Format timestamp for display
   const formatLastUpdate = () => {
