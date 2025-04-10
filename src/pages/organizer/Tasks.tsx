@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { useTaskManagement } from "@/hooks/useTaskManagement";
@@ -16,6 +15,7 @@ import { Clock, AlertTriangle, CheckCircle, XCircle, Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
 
 const taskFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -28,10 +28,60 @@ const taskFormSchema = z.object({
 
 type TaskFormValues = z.infer<typeof taskFormSchema>;
 
+const formatDate = (dateString: string | undefined) => {
+  if (!dateString) return '';
+  try {
+    return new Date(dateString).toLocaleDateString();
+  } catch (error) {
+    console.error('Invalid date:', dateString);
+    return '';
+  }
+};
+
+const TaskReports = ({ tasks }: { tasks: any[] }) => {
+  const stats = {
+    total: tasks.length,
+    completed: tasks.filter(t => t.status === 'completed').length,
+    inProgress: tasks.filter(t => t.status === 'in-progress').length,
+    pending: tasks.filter(t => t.status === 'pending').length,
+    cancelled: tasks.filter(t => t.status === 'cancelled').length,
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Task Statistics</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="p-4 border rounded-lg">
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <div className="text-sm text-muted-foreground">Total Tasks</div>
+          </div>
+          <div className="p-4 border rounded-lg">
+            <div className="text-2xl font-bold">{stats.completed}</div>
+            <div className="text-sm text-muted-foreground">Completed</div>
+          </div>
+          <div className="p-4 border rounded-lg">
+            <div className="text-2xl font-bold">{stats.inProgress}</div>
+            <div className="text-sm text-muted-foreground">In Progress</div>
+          </div>
+          <div className="p-4 border rounded-lg">
+            <div className="text-2xl font-bold">{stats.pending}</div>
+            <div className="text-sm text-muted-foreground">Pending</div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 export default function OrganizerTasks() {
   const { tasks, loading, addTask, updateTaskStatus, getTasksByStatus } = useTaskManagement();
   const { volunteers } = useVolunteers();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const { toast } = useToast();
 
   const { pending, inProgress, completed, cancelled } = getTasksByStatus();
 
@@ -48,17 +98,37 @@ export default function OrganizerTasks() {
 
   const onSubmit = async (values: TaskFormValues) => {
     const assignedVolunteer = volunteers.find(v => v.id === values.assignedTo);
-    if (!assignedVolunteer) return;
+    if (!assignedVolunteer) {
+      toast({
+        title: 'Error',
+        description: 'Selected volunteer not found',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     const taskData = {
       ...values,
       assigneeName: assignedVolunteer.name
     };
     
-    const result = await addTask(taskData as any);
-    if (result) {
-      form.reset();
-      setIsDialogOpen(false);
+    try {
+      const result = await addTask(taskData as any);
+      if (result) {
+        form.reset();
+        setIsDialogOpen(false);
+        toast({
+          title: 'Success',
+          description: 'Task created successfully',
+        });
+      }
+    } catch (error) {
+      console.error('Error creating task:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create task',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -90,8 +160,27 @@ export default function OrganizerTasks() {
     }
   };
 
-  const handleUpdateStatus = (taskId: string, newStatus: 'pending' | 'in-progress' | 'completed' | 'cancelled') => {
-    updateTaskStatus(taskId, newStatus);
+  const handleUpdateStatus = async (taskId: string, newStatus: 'pending' | 'in-progress' | 'completed' | 'cancelled') => {
+    try {
+      setIsUpdating(true);
+      const result = await updateTaskStatus(taskId, newStatus);
+      if (!result) {
+        toast({
+          title: 'Error',
+          description: 'Failed to update task status',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error updating task status:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update task status',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -213,13 +302,15 @@ export default function OrganizerTasks() {
                     <DialogClose asChild>
                       <Button type="button" variant="outline">Cancel</Button>
                     </DialogClose>
-                    <Button type="submit">Create Task</Button>
+                    <Button type="submit" disabled={loading}>Create Task</Button>
                   </div>
                 </form>
               </Form>
             </DialogContent>
           </Dialog>
         </div>
+
+        <TaskReports tasks={tasks} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card>
@@ -248,15 +339,27 @@ export default function OrganizerTasks() {
                         {task.dueDate && (
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
+                            <span>Due: {formatDate(task.dueDate)}</span>
                           </div>
                         )}
                       </div>
                       <div className="flex gap-1 mt-2">
-                        <Button size="sm" variant="outline" className="text-xs" onClick={() => handleUpdateStatus(task.id, 'in-progress')}>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="text-xs" 
+                          onClick={() => handleUpdateStatus(task.id, 'in-progress')}
+                          disabled={isUpdating}
+                        >
                           Start
                         </Button>
-                        <Button size="sm" variant="outline" className="text-xs text-destructive" onClick={() => handleUpdateStatus(task.id, 'cancelled')}>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="text-xs text-destructive" 
+                          onClick={() => handleUpdateStatus(task.id, 'cancelled')}
+                          disabled={isUpdating}
+                        >
                           Cancel
                         </Button>
                       </div>
@@ -295,15 +398,27 @@ export default function OrganizerTasks() {
                         {task.dueDate && (
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
+                            <span>Due: {formatDate(task.dueDate)}</span>
                           </div>
                         )}
                       </div>
                       <div className="flex gap-1 mt-2">
-                        <Button size="sm" variant="outline" className="text-xs" onClick={() => handleUpdateStatus(task.id, 'completed')}>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="text-xs" 
+                          onClick={() => handleUpdateStatus(task.id, 'completed')}
+                          disabled={isUpdating}
+                        >
                           Complete
                         </Button>
-                        <Button size="sm" variant="outline" className="text-xs" onClick={() => handleUpdateStatus(task.id, 'pending')}>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="text-xs" 
+                          onClick={() => handleUpdateStatus(task.id, 'pending')}
+                          disabled={isUpdating}
+                        >
                           Back to Pending
                         </Button>
                       </div>
@@ -343,9 +458,15 @@ export default function OrganizerTasks() {
                       <TableCell className="font-medium">{task.title}</TableCell>
                       <TableCell>{task.assignedTo}</TableCell>
                       <TableCell>{getPriorityBadge(task.priority)}</TableCell>
-                      <TableCell>{task.completedAt ? new Date(task.completedAt).toLocaleDateString() : ''}</TableCell>
+                      <TableCell>{formatDate(task.completedAt)}</TableCell>
                       <TableCell>
-                        <Button size="sm" variant="outline" className="text-xs" onClick={() => handleUpdateStatus(task.id, 'in-progress')}>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="text-xs" 
+                          onClick={() => handleUpdateStatus(task.id, 'in-progress')}
+                          disabled={isUpdating}
+                        >
                           Reopen
                         </Button>
                       </TableCell>
