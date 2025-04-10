@@ -1,4 +1,3 @@
-
 export type UserRole = "volunteer" | "organizer" | "admin";
 
 export interface User {
@@ -62,7 +61,8 @@ export interface Event {
   contactPerson?: string;
   contactEmail?: string;
   registeredUsers?: string[];
-  volunteers?: string[]; // Added volunteers property
+  volunteers?: string[];
+  completedBy?: string;
 }
 
 export interface Task {

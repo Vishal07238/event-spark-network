@@ -1,17 +1,20 @@
-
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import StatsCard from "@/components/dashboard/StatsCard";
 import RealtimeStatus from "@/components/dashboard/RealtimeStatus";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarIcon, Users, CalendarDays, Megaphone, Activity } from "lucide-react";
+import { CalendarIcon, Users, CalendarDays, Megaphone, Activity, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAllEvents } from "@/utils/auth";
+import { getOrganizerTasks } from "@/utils/taskManagement";
+import { format } from "date-fns";
 
 export default function OrganizerDashboard() {
   const { state } = useAuth();
   const [events, setEvents] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [completedEvents, setCompletedEvents] = useState([]);
   const [isRealtimeEnabled, setIsRealtimeEnabled] = useState(true);
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'open' | 'closed'>('connecting');
   const [lastUpdate, setLastUpdate] = useState<Date | null>(new Date());
@@ -21,12 +24,26 @@ export default function OrganizerDashboard() {
   useEffect(() => {
     const loadData = () => {
       try {
+        // Load events
         const allEvents = getAllEvents();
         // Filter events for this organizer
         const organizerEvents = allEvents.filter((event: any) => 
           event.organizerId === state.user?.id
         );
         setEvents(organizerEvents);
+        
+        // Find completed events
+        const eventsWithCompletions = organizerEvents.filter((event: any) => 
+          event.completedBy && event.completedBy.length > 0
+        );
+        setCompletedEvents(eventsWithCompletions);
+        
+        // Load tasks
+        if (state.user) {
+          const organizerTasks = getOrganizerTasks(state.user.id);
+          setTasks(organizerTasks);
+        }
+        
         setLastUpdate(new Date());
       } catch (error) {
         console.error("Error loading events:", error);
@@ -48,6 +65,7 @@ export default function OrganizerDashboard() {
   const activeEvents = events.filter((event: any) => event.status === 'upcoming').length;
   const totalParticipants = events.reduce((sum: number, event: any) => sum + (event.participants || 0), 0);
   const averageParticipants = totalEvents > 0 ? Math.round(totalParticipants / totalEvents) : 0;
+  const completedCount = completedEvents.length;
 
   const toggleRealtime = () => {
     setIsRealtimeEnabled(!isRealtimeEnabled);
@@ -92,7 +110,7 @@ export default function OrganizerDashboard() {
         </div>
 
         {/* Stats overview */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           <StatsCard
             title="Total Events"
             value={totalEvents}
@@ -118,6 +136,12 @@ export default function OrganizerDashboard() {
             icon={<CalendarDays className="h-4 w-4" />}
             description="Per event average"
           />
+          <StatsCard
+            title="Completed Events"
+            value={completedCount}
+            icon={<CheckCircle2 className="h-4 w-4" />}
+            description="Events marked complete"
+          />
         </div>
 
         {/* Dashboard tabs */}
@@ -125,6 +149,7 @@ export default function OrganizerDashboard() {
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="upcoming">Upcoming Events</TabsTrigger>
+            <TabsTrigger value="completed">Completed Activities</TabsTrigger>
             <TabsTrigger value="insights">Insights</TabsTrigger>
           </TabsList>
           
@@ -186,6 +211,73 @@ export default function OrganizerDashboard() {
                 ) : (
                   <p className="text-center text-muted-foreground p-4">
                     No upcoming events. Schedule your next event to engage volunteers.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="completed" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Completed Events & Tasks</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {completedEvents.length > 0 || tasks.filter((task: any) => task.status === 'completed').length > 0 ? (
+                  <div className="space-y-6">
+                    {completedEvents.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-3">Completed Events</h3>
+                        <div className="space-y-2">
+                          {completedEvents.map((event: any) => (
+                            <div key={event.id} className="p-3 border rounded-lg">
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                <div>
+                                  <h4 className="font-medium">{event.title}</h4>
+                                  <p className="text-sm text-muted-foreground">{event.date}</p>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  <Badge variant="outline" className="flex items-center gap-1">
+                                    <CheckCircle2 className="h-3 w-3" /> 
+                                    {event.completedBy?.length || 0} of {event.registeredUsers?.length || 0} completed
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {tasks.filter((task: any) => task.status === 'completed').length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-3">Completed Tasks</h3>
+                        <div className="space-y-2">
+                          {tasks
+                            .filter((task: any) => task.status === 'completed')
+                            .map((task: any) => (
+                              <div key={task.id} className="p-3 border rounded-lg">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                  <div>
+                                    <h4 className="font-medium">{task.title}</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                      Completed on: {task.completedAt ? format(new Date(task.completedAt), 'PPP') : 'Unknown'}
+                                    </p>
+                                  </div>
+                                  <Badge variant="outline" className="flex items-center gap-1">
+                                    <CheckCircle2 className="h-3 w-3" /> Completed
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))
+                          }
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground p-4">
+                    No completed events or tasks yet. They will appear here when volunteers complete them.
                   </p>
                 )}
               </CardContent>

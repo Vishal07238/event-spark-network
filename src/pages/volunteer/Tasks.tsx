@@ -10,12 +10,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getAllEvents, getUserTasks } from "@/utils/auth";
 import { Event, Task } from "@/types/auth";
 import { formatDistanceToNow } from "date-fns";
+import TaskItem from "@/components/task/TaskItem";
+import EventCompletionButton from "@/components/events/EventCompletionButton";
 
 export default function VolunteerTasks() {
   const { state } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [registeredEvents, setRegisteredEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Load tasks and registered events
   useEffect(() => {
@@ -35,7 +38,15 @@ export default function VolunteerTasks() {
     setRegisteredEvents(userEvents);
     
     setIsLoading(false);
-  }, [state.user]);
+  }, [state.user, refreshKey]);
+
+  const handleTaskComplete = () => {
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const handleEventComplete = () => {
+    setRefreshKey(prev => prev + 1);
+  };
 
   // All activities (both tasks and registered events)
   const allActivities = [
@@ -46,7 +57,8 @@ export default function VolunteerTasks() {
       dueDate: task.dueDate || 'No due date',
       priority: task.priority,
       status: task.status,
-      type: 'task'
+      type: 'task',
+      taskObject: task
     })),
     ...registeredEvents.map(event => ({
       id: `event-${event.id}`,
@@ -54,8 +66,9 @@ export default function VolunteerTasks() {
       event: event.title,
       dueDate: event.date,
       priority: 'medium',
-      status: new Date(event.date) < new Date() ? 'completed' : 'pending',
-      type: 'event'
+      status: event.completedBy?.includes(state.user?.id) ? 'completed' : 'pending',
+      type: 'event',
+      eventObject: event
     }))
   ];
 
@@ -96,6 +109,33 @@ export default function VolunteerTasks() {
             )}
           </div>
         </div>
+        
+        {activity.status === "pending" && (
+          <div className="mt-3">
+            {activity.type === 'task' && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  if (activity.taskObject) {
+                    completeTask(activity.taskObject.id, state.user?.id);
+                    handleTaskComplete();
+                  }
+                }}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-1" />
+                Mark as Completed
+              </Button>
+            )}
+            
+            {activity.type === 'event' && activity.eventObject && (
+              <EventCompletionButton 
+                eventId={activity.eventObject.id} 
+                onEventComplete={handleEventComplete} 
+              />
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

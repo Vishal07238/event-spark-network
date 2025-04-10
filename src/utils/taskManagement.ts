@@ -75,3 +75,17 @@ export const completeTask = (taskId: string, userId: string): Task | null => {
   saveStorageData(TASKS_STORAGE_KEY, tasks);
   return tasks[taskIndex];
 };
+
+// Get tasks created by a specific organizer
+export const getOrganizerTasks = (organizerId: string): Task[] => {
+  const tasks = getAllTasks();
+  return tasks.filter((task: Task) => task.createdBy === organizerId);
+};
+
+// Get completed tasks for a user
+export const getUserCompletedTasks = (userId: string): Task[] => {
+  const tasks = getAllTasks();
+  return tasks.filter((task: Task) => 
+    task.assignedTo === userId && task.status === 'completed'
+  );
+};

@@ -24,7 +24,8 @@ const initializeEvents = () => {
       image: "https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?q=80&w=300",
       organizerId: "org-1",
       registeredUsers: [],
-      volunteers: []
+      volunteers: [],
+      completedBy: []
     },
     {
       id: 2,
@@ -39,7 +40,8 @@ const initializeEvents = () => {
       image: "https://images.unsplash.com/photo-1593113598332-cd59a0c3a9a4?q=80&w=300",
       organizerId: "org-1",
       registeredUsers: [],
-      volunteers: []
+      volunteers: [],
+      completedBy: []
     },
   ];
   
@@ -68,7 +70,8 @@ export const createEvent = (eventData: any, organizerId: string): Event => {
     status: 'upcoming',
     organizerId,
     registeredUsers: [],
-    volunteers: []
+    volunteers: [],
+    completedBy: []
   };
   
   events.push(newEvent);
@@ -160,4 +163,51 @@ export const isUserRegisteredForEvent = (eventId: number, userId: string): boole
   const event = getEventById(eventId);
   if (!event || !event.registeredUsers) return false;
   return event.registeredUsers.includes(userId);
+};
+
+// Mark an event as completed by a volunteer
+export const markEventAsCompleted = (eventId: number, userId: string): Event | null => {
+  const events = getAllEvents();
+  const eventIndex = events.findIndex((e: Event) => e.id === eventId);
+  
+  if (eventIndex === -1) return null;
+  
+  // Check if user is registered for this event
+  if (!events[eventIndex].registeredUsers?.includes(userId)) return null;
+  
+  // Initialize completedBy array if it doesn't exist
+  if (!events[eventIndex].completedBy) {
+    events[eventIndex].completedBy = [];
+  }
+  
+  // Check if user has already marked this event as completed
+  if (events[eventIndex].completedBy.includes(userId)) {
+    return events[eventIndex]; // Already marked as completed
+  }
+  
+  // Add user to completedBy array
+  events[eventIndex].completedBy.push(userId);
+  
+  // If all registered users have completed the event, mark it as completed
+  if (events[eventIndex].completedBy.length === events[eventIndex].registeredUsers.length) {
+    events[eventIndex].status = 'completed';
+  }
+  
+  saveStorageData(EVENTS_STORAGE_KEY, events);
+  return events[eventIndex];
+};
+
+// Check if a user has completed an event
+export const hasUserCompletedEvent = (eventId: number, userId: string): boolean => {
+  const event = getEventById(eventId);
+  if (!event || !event.completedBy) return false;
+  return event.completedBy.includes(userId);
+};
+
+// Get completed events for a user
+export const getUserCompletedEvents = (userId: string): Event[] => {
+  const events = getAllEvents();
+  return events.filter((event: Event) => 
+    event.completedBy?.includes(userId)
+  );
 };
